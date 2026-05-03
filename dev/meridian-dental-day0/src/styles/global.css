@@ -1,0 +1,21 @@
+@import "tailwindcss";
+
+@theme {
+  --font-display: 'Fraunces Variable', Georgia, serif;
+  --font-sans: 'Inter Variable', system-ui, sans-serif;
+  --color-ink: #0A0A0A;
+  --color-bone: #F5F1EA;
+  --color-brass: #B8956A;
+  --color-stone: #1A1A1A;
+  --tracking-display: -0.04em;
+}
+
+@layer base {
+  /* Constrain variable font weight axes to the ranges we loaded */
+  :root {
+    --font-weight-display-min: 300;
+    --font-weight-display-max: 700;
+    --font-weight-sans-min: 300;
+    --font-weight-sans-max: 600;
+  }
+}
