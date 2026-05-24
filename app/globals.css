@@ -1,22 +1,111 @@
+@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-@layer base {
-  :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
-    --border: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
-    --radius: 0.5rem;
-  }
+:root {
+  /* Base — true off-black, warm */
+  --bg-canvas: #0b0a09;
+  --bg-elevated: #14120f;
+  --bg-card: #1a1714;
+  --bg-input: #221e1a;
+  --border-subtle: #2a2521;
+  --border-strong: #3d362f;
 
-  * {
-    border-color: hsl(var(--border));
-  }
+  /* Text */
+  --text-primary: #f5f0e8;
+  --text-secondary: #a8a097;
+  --text-tertiary: #6f685f;
+  --text-quaternary: #4a443c;
 
-  body {
-    background-color: hsl(var(--background));
-    color: hsl(var(--foreground));
-  }
+  /* Single sharp accent — warm amber */
+  --accent: #d4a574;
+  --accent-hover: #e0b585;
+  --accent-muted: #5c4a36;
+
+  /* Directional — muted teal/coral */
+  --up: #7fb3a3;
+  --up-soft: rgba(127, 179, 163, 0.12);
+  --up-strong: #a5cdbf;
+  --down: #d49484;
+  --down-soft: rgba(212, 148, 132, 0.12);
+  --down-strong: #e4ab9c;
+  --neutral: var(--text-tertiary);
+
+  /* Semantic */
+  --grounded: var(--up);
+  --unverified: #d4a574;
+
+  /* Fonts */
+  --font-serif: 'Instrument Serif', Georgia, serif;
+  --font-sans: 'Geist', system-ui, sans-serif;
+  --font-mono: 'Geist Mono', 'JetBrains Mono', monospace;
+
+  /* Type scale */
+  --text-display: clamp(3rem, 6vw, 5.5rem);
+  --text-h1: clamp(2rem, 4vw, 3.5rem);
+  --text-h2: 1.875rem;
+  --text-h3: 1.25rem;
+  --text-body: 0.9375rem;
+  --text-small: 0.8125rem;
+  --text-micro: 0.6875rem;
+
+  /* Spacing */
+  --space-xs: 0.25rem;
+  --space-sm: 0.5rem;
+  --space-md: 1rem;
+  --space-lg: 1.5rem;
+  --space-xl: 2.5rem;
+  --space-2xl: 4rem;
+  --space-3xl: 6rem;
+
+  /* Motion */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --duration-fast: 180ms;
+  --duration-base: 300ms;
+  --duration-slow: 500ms;
+}
+
+html {
+  background: var(--bg-canvas);
+}
+
+body {
+  background: var(--bg-canvas);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: var(--text-body);
+  font-feature-settings: 'ss01', 'cv11';
+  -webkit-font-smoothing: antialiased;
+}
+
+.font-serif { font-family: var(--font-serif); font-weight: 400; }
+.font-mono { font-family: var(--font-mono); font-feature-settings: 'tnum', 'zero'; }
+.font-sans { font-family: var(--font-sans); }
+
+/* Numbers — always monospace, tabular */
+.num {
+  font-family: var(--font-mono);
+  font-feature-settings: 'tnum', 'zero';
+  letter-spacing: -0.01em;
+}
+
+/* Grain overlay for atmosphere */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml;utf8,<svg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'><filter id='n'><feTurbulence baseFrequency='0.9'/></filter><rect width='200' height='200' filter='url(%23n)' opacity='0.04'/></svg>");
+  pointer-events: none;
+  z-index: 1;
+  mix-blend-mode: overlay;
+  opacity: 0.5;
+}
+
+body > * { position: relative; z-index: 2; }
+
+::selection {
+  background: var(--accent-muted);
+  color: var(--text-primary);
 }
