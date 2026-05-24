@@ -97,3 +97,56 @@ export function correlationMatrix(
 
   return { symbols, matrix };
 }
+
+export interface CovarianceResult {
+  symbols: string[];
+  matrix: number[][];
+}
+
+/**
+ * Covariance matrix from aligned return series.
+ * Σ_ij = E[(r_i - μ_i)(r_j - μ_j)] with N-1 (Bessel) denominator.
+ * All input series MUST be the same length (use alignManySeries upstream).
+ */
+export function covarianceMatrix(
+  returnsBySymbol: Record<string, number[]>
+): CovarianceResult {
+  const symbols = Object.keys(returnsBySymbol);
+  const n = symbols.length;
+  const matrix: number[][] = Array.from({ length: n }, () => new Array<number>(n).fill(0));
+
+  // Precompute means
+  const means: number[] = symbols.map((s) => meanReturn(returnsBySymbol[s]));
+
+  // Verify equal lengths
+  const len = returnsBySymbol[symbols[0]]?.length ?? 0;
+  for (const s of symbols) {
+    if (returnsBySymbol[s].length !== len) {
+      throw new Error('covarianceMatrix: series must all be the same length');
+    }
+  }
+  if (len < 2) {
+    // Cannot compute covariance with fewer than 2 observations
+    return { symbols, matrix };
+  }
+
+  const denom = len - 1;
+
+  for (let i = 0; i < n; i++) {
+    const ri = returnsBySymbol[symbols[i]];
+    const mi = means[i];
+    for (let j = i; j < n; j++) {
+      const rj = returnsBySymbol[symbols[j]];
+      const mj = means[j];
+      let sum = 0;
+      for (let k = 0; k < len; k++) {
+        sum += (ri[k] - mi) * (rj[k] - mj);
+      }
+      const cov = sum / denom;
+      matrix[i][j] = cov;
+      matrix[j][i] = cov; // mirror
+    }
+  }
+
+  return { symbols, matrix };
+}
