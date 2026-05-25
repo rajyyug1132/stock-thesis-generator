@@ -1,10 +1,11 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { useEffect, useRef, useState } from 'react';
+import { usePathname, useRouter } from 'next/navigation';
+import { useEffect, useRef, useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { SectionLabel } from '@/components/ui/section-label';
+import { NIFTY_50 } from '@/lib/data/nifty50';
 
 /* ══════════════════════════════════════════════════════════════════════════════
    LogoMark — matches Editorial Quant Design System / assets/logo-mark.svg
@@ -90,6 +91,60 @@ function JitterGraph() {
 }
 
 /* ══════════════════════════════════════════════════════════════════════════════
+   Bionic Ticker Animation (Digit-by-digit slide-roll animation)
+══════════════════════════════════════════════════════════════════════════════ */
+function BionicDigit({ char, idx }: { char: string; idx: number }) {
+  const isDigit = /\d/.test(char);
+
+  if (!isDigit) {
+    return <span style={{ display: 'inline-block' }}>{char}</span>;
+  }
+
+  return (
+    <span
+      style={{
+        display: 'inline-block',
+        position: 'relative',
+        height: '1.2em',
+        overflow: 'hidden',
+        verticalAlign: 'bottom',
+      }}
+    >
+      {/* Invisible placeholder to reserve exact layout width */}
+      <span style={{ visibility: 'hidden', pointerEvents: 'none' }}>{char}</span>
+      
+      <AnimatePresence initial={false}>
+        <motion.span
+          key={`${char}-${idx}`}
+          initial={{ y: '100%', opacity: 0 }}
+          animate={{ y: '0%', opacity: 1 }}
+          exit={{ y: '-100%', opacity: 0 }}
+          transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+          style={{
+            position: 'absolute',
+            left: 0,
+            top: 0,
+            display: 'inline-block',
+          }}
+        >
+          {char}
+        </motion.span>
+      </AnimatePresence>
+    </span>
+  );
+}
+
+function BionicNumber({ value, className, style }: { value: string; className?: string; style?: React.CSSProperties }) {
+  return (
+    <span className={className} style={{ display: 'inline-flex', alignItems: 'baseline', ...style }}>
+      {value.split('').map((char, i) => (
+        <BionicDigit key={i} char={char} idx={i} />
+      ))}
+    </span>
+  );
+}
+
+/* ══════════════════════════════════════════════════════════════════════════════
    Live NIFTY ticker hook
 ══════════════════════════════════════════════════════════════════════════════ */
 interface NiftyLive {
@@ -101,16 +156,22 @@ function useNiftyLive(): NiftyLive | null {
   const [live, setLive] = useState<NiftyLive | null>(null);
 
   useEffect(() => {
-    fetch('/api/stocks/NSEI')
-      .then((r) => r.json())
-      .then((d) => {
-        const prices: Array<{ close: number }> = d.prices ?? [];
-        if (prices.length < 2) return;
-        const current = prices[prices.length - 1].close;
-        const prev    = prices[prices.length - 2].close;
-        setLive({ level: current, change: (current - prev) / prev });
-      })
-      .catch(() => {});
+    function fetchLive() {
+      fetch('/api/stocks/NSEI')
+        .then((r) => r.json())
+        .then((d) => {
+          const prices: Array<{ close: number }> = d.prices ?? [];
+          if (prices.length < 2) return;
+          const current = prices[prices.length - 1].close;
+          const prev    = prices[prices.length - 2].close;
+          setLive({ level: current, change: (current - prev) / prev });
+        })
+        .catch(() => {});
+    }
+
+    fetchLive();
+    const id = setInterval(fetchLive, 5000); // refresh level every 5s for live feel
+    return () => clearInterval(id);
   }, []);
 
   return live;
@@ -127,132 +188,473 @@ const NAV = [
 ══════════════════════════════════════════════════════════════════════════════ */
 export function Header() {
   const pathname  = usePathname();
+  const router    = useRouter();
   const niftyLive = useNiftyLive();
   const positive  = niftyLive ? niftyLive.change >= 0 : true;
+
+  const [showCommandPalette, setShowCommandPalette] = useState(false);
+  const [paletteQuery, setPaletteQuery] = useState('');
+  const [selectedIndex, setSelectedIndex] = useState(0);
 
   function isActive(href: string) {
     if (href === '/') return pathname === '/' || pathname.startsWith('/stock');
     return pathname.startsWith(href);
   }
 
+  // Keyboard Navigation: Ctrl+K / Cmd+K, G then H, S
+  useEffect(() => {
+    let lastKey = '';
+    let lastTime = 0;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement;
+      const isInput = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable;
+      
+      if (isInput && !showCommandPalette) return;
+
+      const key = e.key.toLowerCase();
+      const now = Date.now();
+
+      // Ctrl+K / Cmd+K
+      if ((e.ctrlKey || e.metaKey) && key === 'k') {
+        e.preventDefault();
+        setShowCommandPalette((prev) => !prev);
+        return;
+      }
+
+      // Escape
+      if (key === 'escape' && showCommandPalette) {
+        e.preventDefault();
+        setShowCommandPalette(false);
+        return;
+      }
+
+      if (showCommandPalette) return;
+
+      // S -> Open Search (Open Command Palette prefilled)
+      if (key === 's') {
+        e.preventDefault();
+        setShowCommandPalette(true);
+        return;
+      }
+
+      // G then H
+      if (lastKey === 'g' && key === 'h' && now - lastTime < 1000) {
+        e.preventDefault();
+        router.push('/');
+        lastKey = '';
+        return;
+      }
+
+      lastKey = key;
+      lastTime = now;
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [router, showCommandPalette]);
+
+  // Command palette suggestions
+  const suggestions = useMemo(() => {
+    const q = paletteQuery.toLowerCase().trim();
+    if (!q) {
+      return [
+        { id: 'home', label: 'Go to Home / Stocks', shortcut: 'G H', category: 'Navigation', action: () => router.push('/') },
+        { id: 'compare', label: 'Go to Compare Screen', category: 'Navigation', action: () => router.push('/compare') },
+        { id: 'example-compare', label: 'Compare RELIANCE with HDFCBANK', category: 'Compare', action: () => router.push('/compare?symbols=RELIANCE,HDFCBANK') },
+        { id: 'example-compare-2', label: 'Compare TCS with INFY', category: 'Compare', action: () => router.push('/compare?symbols=TCS,INFY') },
+      ];
+    }
+
+    const items: Array<{ id: string; label: string; shortcut?: string; category: string; action: () => void }> = [];
+
+    // Parse compare command
+    if (q.startsWith('compare') || q.includes('with') || q.split(/\s+/).length > 1) {
+      const words = paletteQuery
+        .replace(/with/gi, ' ')
+        .replace(/compare/gi, ' ')
+        .split(/[\s,·]+/)
+        .map((w) => w.trim().toUpperCase())
+        .filter((w) => w && w !== 'WITH' && w !== 'COMPARE');
+
+      if (words.length >= 2) {
+        items.push({
+          id: 'dynamic-compare',
+          label: `Compare ${words.join(' · ')}`,
+          category: 'Compare',
+          action: () => router.push(`/compare?symbols=${words.slice(0, 5).join(',')}`),
+        });
+      }
+    }
+
+    // Filter stocks
+    const matchedStocks = NIFTY_50.filter(
+      (s) =>
+        s.symbol.toLowerCase().includes(q) ||
+        s.name.toLowerCase().includes(q)
+    ).slice(0, 5);
+
+    for (const stock of matchedStocks) {
+      const sym = stock.symbol.replace('.NS', '');
+      items.push({
+        id: `stock-${sym}`,
+        label: `View ${sym} Thesis — ${stock.name}`,
+        category: 'Stocks',
+        action: () => router.push(`/stock/${sym}`),
+      });
+    }
+
+    if (items.length === 0) {
+      items.push({
+        id: 'search-anyway',
+        label: `Go to ticker "${paletteQuery.toUpperCase()}"`,
+        category: 'Action',
+        action: () => router.push(`/stock/${paletteQuery.toUpperCase()}`),
+      });
+    }
+
+    return items;
+  }, [paletteQuery, router]);
+
+  useEffect(() => {
+    setSelectedIndex(0);
+  }, [paletteQuery]);
+
+  const handlePaletteKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setSelectedIndex((prev) => (prev + 1) % suggestions.length);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setSelectedIndex((prev) => (prev - 1 + suggestions.length) % suggestions.length);
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      if (suggestions[selectedIndex]) {
+        suggestions[selectedIndex].action();
+        setShowCommandPalette(false);
+        setPaletteQuery('');
+      }
+    }
+  };
+
   return (
-    <header
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: 28,
-        height: 56,
-        borderBottom: '1px solid var(--border-subtle)',
-        padding: '0 32px',
-        background: 'var(--bg-canvas)',
-        position: 'sticky',
-        top: 0,
-        zIndex: 10,
-      }}
-    >
-      {/* Logo */}
-      <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 12, textDecoration: 'none' }}>
-        <LogoMark size={24} />
-        <span style={{
-          fontFamily: 'var(--font-mono)',
-          fontSize: 12,
-          letterSpacing: '0.08em',
-          textTransform: 'uppercase',
-          color: 'var(--text-primary)',
-        }}>
-          THESIS · ENGINE
-        </span>
-      </Link>
-
-      {/* Nav — framer-motion underline slides between active items */}
-      <nav style={{ marginLeft: 'auto', display: 'flex', gap: 28 }}>
-        {NAV.map(({ href, label }) => {
-          const active = isActive(href);
-          return (
-            <Link
-              key={href}
-              href={href}
-              style={{
-                position: 'relative',
-                fontFamily: 'var(--font-mono)',
-                fontSize: 11,
-                fontWeight: 500,
-                letterSpacing: '0.08em',
-                textTransform: 'uppercase',
-                color: active ? 'var(--text-primary)' : 'var(--text-secondary)',
-                paddingBottom: 4,
-                textDecoration: 'none',
-                transition: 'color var(--duration-fast) var(--ease-out)',
-              }}
-            >
-              {label}
-              <AnimatePresence>
-                {active && (
-                  <motion.span
-                    layoutId="nav-underline"
-                    initial={{ opacity: 0, scaleX: 0.5 }}
-                    animate={{ opacity: 1, scaleX: 1 }}
-                    exit={{ opacity: 0, scaleX: 0.5 }}
-                    transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
-                    style={{
-                      position: 'absolute',
-                      bottom: 0,
-                      left: 0,
-                      right: 0,
-                      height: 1,
-                      background: 'var(--accent)',   /* mint */
-                      transformOrigin: 'left',
-                    }}
-                  />
-                )}
-              </AnimatePresence>
-            </Link>
-          );
-        })}
-      </nav>
-
-      {/* Live NIFTY ticker — with jitter graph behind it */}
-      <div
+    <>
+      <header
         style={{
-          position: 'relative',
-          borderLeft: '1px solid var(--border-subtle)',
-          paddingLeft: 20,
-          marginLeft: 8,
-          fontFamily: 'var(--font-mono)',
-          fontSize: 11,
-          fontWeight: 500,
-          display: 'inline-flex',
-          alignItems: 'baseline',
-          gap: 8,
-          overflow: 'hidden',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 28,
+          height: 56,
+          borderBottom: '1px solid var(--border-subtle)',
+          padding: '0 32px',
+          background: 'var(--bg-canvas)',
+          position: 'sticky',
+          top: 0,
+          zIndex: 10,
         }}
       >
-        <JitterGraph />
-        <span style={{ letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text-tertiary)', position: 'relative' }}>
-          NIFTY
-        </span>
+        {/* Logo */}
+        <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 12, textDecoration: 'none' }}>
+          <LogoMark size={24} />
+          <span style={{
+            fontFamily: 'var(--font-mono)',
+            fontSize: 12,
+            letterSpacing: '0.08em',
+            textTransform: 'uppercase',
+            color: 'var(--text-primary)',
+          }}>
+            THESIS · ENGINE
+          </span>
+        </Link>
 
-        {niftyLive ? (
-          <>
-            <span className="num" style={{ color: 'var(--text-secondary)', position: 'relative' }}>
-              {niftyLive.level.toLocaleString('en-IN', { maximumFractionDigits: 2, minimumFractionDigits: 2 })}
-            </span>
-            <motion.span
-              key={positive ? 'up' : 'down'}
-              initial={{ opacity: 0, y: positive ? 3 : -3 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.2 }}
-              className="num"
-              style={{ color: positive ? 'var(--up)' : 'var(--down)', position: 'relative' }}
+        {/* Nav — framer-motion underline slides between active items */}
+        <nav style={{ marginLeft: 'auto', display: 'flex', gap: 28 }}>
+          {NAV.map(({ href, label }) => {
+            const active = isActive(href);
+            return (
+              <Link
+                key={href}
+                href={href}
+                style={{
+                  position: 'relative',
+                  fontFamily: 'var(--font-mono)',
+                  fontSize: 11,
+                  fontWeight: 500,
+                  letterSpacing: '0.08em',
+                  textTransform: 'uppercase',
+                  color: active ? 'var(--text-primary)' : 'var(--text-secondary)',
+                  paddingBottom: 4,
+                  textDecoration: 'none',
+                  transition: 'color var(--duration-fast) var(--ease-out)',
+                }}
+              >
+                {label}
+                <AnimatePresence>
+                  {active && (
+                    <motion.span
+                      layoutId="nav-underline"
+                      initial={{ opacity: 0, scaleX: 0.5 }}
+                      animate={{ opacity: 1, scaleX: 1 }}
+                      exit={{ opacity: 0, scaleX: 0.5 }}
+                      transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
+                      style={{
+                        position: 'absolute',
+                        bottom: 0,
+                        left: 0,
+                        right: 0,
+                        height: 1,
+                        background: 'var(--accent)',   /* mint */
+                        transformOrigin: 'left',
+                      }}
+                    />
+                  )}
+                </AnimatePresence>
+              </Link>
+            );
+          })}
+        </nav>
+
+        {/* Live NIFTY ticker — with jitter graph behind it */}
+        <div
+          style={{
+            position: 'relative',
+            borderLeft: '1px solid var(--border-subtle)',
+            paddingLeft: 20,
+            marginLeft: 8,
+            fontFamily: 'var(--font-mono)',
+            fontSize: 11,
+            fontWeight: 500,
+            display: 'inline-flex',
+            alignItems: 'baseline',
+            gap: 8,
+            overflow: 'hidden',
+          }}
+        >
+          <JitterGraph />
+          <span style={{ letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text-tertiary)', position: 'relative' }}>
+            NIFTY
+          </span>
+
+          {niftyLive ? (
+            <>
+              {/* Bionic digit animation on NIFTY level */}
+              <BionicNumber
+                value={niftyLive.level.toLocaleString('en-IN', { maximumFractionDigits: 2, minimumFractionDigits: 2 })}
+                className="num"
+                style={{ color: 'var(--text-secondary)', position: 'relative' }}
+              />
+              <motion.span
+                key={positive ? 'up' : 'down'}
+                initial={{ opacity: 0, y: positive ? 3 : -3 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.2 }}
+                className="num"
+                style={{ color: positive ? 'var(--up)' : 'var(--down)', position: 'relative' }}
+              >
+                {positive ? '▲' : '▼'}{Math.abs(niftyLive.change * 100).toFixed(2)}%
+              </motion.span>
+            </>
+          ) : (
+            <span style={{ color: 'var(--text-quaternary)', letterSpacing: '0.04em', position: 'relative' }}>···</span>
+          )}
+        </div>
+      </header>
+
+      {/* Command Palette Modal */}
+      <AnimatePresence>
+        {showCommandPalette && (
+          <div
+            style={{
+              position: 'fixed',
+              inset: 0,
+              display: 'flex',
+              alignItems: 'start',
+              justifyContent: 'center',
+              paddingTop: '15vh',
+              zIndex: 9999,
+            }}
+          >
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => { setShowCommandPalette(false); setPaletteQuery(''); }}
+              style={{
+                position: 'absolute',
+                inset: 0,
+                background: 'rgba(0, 0, 0, 0.75)',
+                backdropFilter: 'blur(4px)',
+              }}
+            />
+
+            {/* Panel */}
+            <motion.div
+              initial={{ opacity: 0, y: -20, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -20, scale: 0.98 }}
+              transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+              style={{
+                position: 'relative',
+                width: '100%',
+                maxWidth: '600px',
+                background: 'var(--bg-elevated)',
+                border: '1px solid var(--border-strong)',
+                boxShadow: '0 24px 64px rgba(0, 0, 0, 0.8)',
+                overflow: 'hidden',
+                borderRadius: '0px',
+              }}
             >
-              {positive ? '▲' : '▼'}{Math.abs(niftyLive.change * 100).toFixed(2)}%
-            </motion.span>
-          </>
-        ) : (
-          <span style={{ color: 'var(--text-quaternary)', letterSpacing: '0.04em', position: 'relative' }}>···</span>
+              {/* Input container */}
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  padding: '16px 20px',
+                  borderBottom: '1px solid var(--border-subtle)',
+                }}
+              >
+                <span
+                  style={{
+                    fontFamily: 'var(--font-mono)',
+                    color: 'var(--accent)',
+                    fontSize: '14px',
+                    marginRight: '12px',
+                    userSelect: 'none',
+                  }}
+                >
+                  &gt;
+                </span>
+                <input
+                  autoFocus
+                  type="text"
+                  value={paletteQuery}
+                  onChange={(e) => setPaletteQuery(e.target.value)}
+                  onKeyDown={handlePaletteKeyDown}
+                  placeholder="Compare RELIANCE with HDFCBANK or search ticker..."
+                  style={{
+                    flex: 1,
+                    background: 'transparent',
+                    border: 'none',
+                    outline: 'none',
+                    color: 'var(--text-primary)',
+                    fontFamily: 'var(--font-sans)',
+                    fontSize: '14px',
+                  }}
+                />
+                <span
+                  style={{
+                    fontFamily: 'var(--font-mono)',
+                    fontSize: '9px',
+                    color: 'var(--text-tertiary)',
+                    border: '1px solid var(--border-subtle)',
+                    padding: '2px 6px',
+                    userSelect: 'none',
+                  }}
+                >
+                  ESC
+                </span>
+              </div>
+
+              {/* Suggestions List */}
+              <div style={{ maxHeight: '320px', overflowY: 'auto', padding: '8px 0' }}>
+                {suggestions.map((item, index) => {
+                  const isSelected = index === selectedIndex;
+                  return (
+                    <div
+                      key={item.id}
+                      onClick={() => {
+                        item.action();
+                        setShowCommandPalette(false);
+                        setPaletteQuery('');
+                      }}
+                      onMouseEnter={() => setSelectedIndex(index)}
+                      style={{
+                        padding: '10px 20px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        background: isSelected ? 'rgba(193, 242, 224, 0.05)' : 'transparent',
+                        cursor: 'pointer',
+                        transition: 'background 0.15s',
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <span
+                          style={{
+                            fontFamily: 'var(--font-mono)',
+                            fontSize: '9px',
+                            color: isSelected ? 'var(--accent)' : 'var(--text-quaternary)',
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.05em',
+                            border: `1px solid ${isSelected ? 'var(--accent)' : 'var(--border-subtle)'}`,
+                            padding: '1px 5px',
+                            minWidth: '70px',
+                            textAlign: 'center',
+                          }}
+                        >
+                          {item.category}
+                        </span>
+                        <span
+                          style={{
+                            fontFamily: 'var(--font-sans)',
+                            fontSize: '13px',
+                            color: isSelected ? 'var(--text-primary)' : 'var(--text-secondary)',
+                          }}
+                        >
+                          {item.label}
+                        </span>
+                      </div>
+                      {item.shortcut ? (
+                        <span
+                          style={{
+                            fontFamily: 'var(--font-mono)',
+                            fontSize: '9px',
+                            color: 'var(--text-tertiary)',
+                            letterSpacing: '0.1em',
+                          }}
+                        >
+                          {item.shortcut}
+                        </span>
+                      ) : isSelected ? (
+                        <span
+                          style={{
+                            fontFamily: 'var(--font-mono)',
+                            fontSize: '10px',
+                            color: 'var(--accent)',
+                          }}
+                        >
+                          ↵ ENTER
+                        </span>
+                      ) : null}
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Footer */}
+              <div
+                style={{
+                  padding: '10px 20px',
+                  background: 'var(--bg-canvas)',
+                  borderTop: '1px solid var(--border-subtle)',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                }}
+              >
+                <span style={{ fontSize: '10px', color: 'var(--text-tertiary)' }}>
+                  Use <span style={{ fontFamily: 'var(--font-mono)' }}>↑↓</span> to navigate, <span style={{ fontFamily: 'var(--font-mono)' }}>↵</span> to select
+                </span>
+                <span style={{ fontSize: '10px', color: 'var(--text-tertiary)' }}>
+                  Try typing: <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)' }}>compare TCS INFY</span>
+                </span>
+              </div>
+            </motion.div>
+          </div>
         )}
-      </div>
-    </header>
+      </AnimatePresence>
+    </>
   );
 }
 

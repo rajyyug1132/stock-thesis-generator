@@ -103,15 +103,22 @@ export function SymbolPicker({ initialSymbols = [] }: SymbolPickerProps) {
       )}
 
       {/* Search input */}
-      <div className="relative">
-        <input
-          type="text"
-          value={query}
-          onChange={(e) => { setQuery(e.target.value); setOpen(true); }}
-          onFocus={() => setOpen(true)}
-          placeholder="Search Nifty 50 stocks..."
-          className="w-full border border-zinc-800 bg-[#0d0e10] px-4 py-2.5 text-sm text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent)] transition-colors placeholder:text-[var(--text-tertiary)] font-mono"
-        />
+      <div className="relative w-full">
+        <div className="relative flex items-center">
+          <input
+            type="text"
+            value={query}
+            onChange={(e) => { setQuery(e.target.value); setOpen(true); }}
+            onFocus={() => setOpen(true)}
+            placeholder="Search Nifty 50 stocks..."
+            className="w-full border border-zinc-800 bg-[#0d0e10] pl-4 pr-12 py-2.5 text-sm text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent)] transition-colors placeholder:text-[var(--text-tertiary)] font-mono"
+          />
+          <div className="absolute right-3 pointer-events-none select-none flex items-center">
+            <kbd className="hidden sm:inline-flex h-5 items-center gap-0.5 rounded border border-zinc-800 bg-zinc-900 px-1.5 font-mono text-[9px] font-medium text-[var(--text-tertiary)]">
+              <span className="text-[10px]">⌘</span>K
+            </kbd>
+          </div>
+        </div>
         {open && (
           <div className="absolute z-50 mt-1 w-full max-h-72 overflow-y-auto border border-zinc-800 bg-[#0d0e10] shadow-xl">
             {Array.from(filtered.entries()).map(([sector, stocks]) => (
