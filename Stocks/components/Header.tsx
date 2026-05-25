@@ -93,54 +93,35 @@ function JitterGraph() {
 /* ══════════════════════════════════════════════════════════════════════════════
    Bionic Ticker Animation (Digit-by-digit slide-roll animation)
 ══════════════════════════════════════════════════════════════════════════════ */
-function BionicDigit({ char, idx }: { char: string; idx: number }) {
-  const isDigit = /\d/.test(char);
-
-  if (!isDigit) {
-    return <span style={{ display: 'inline-block' }}>{char}</span>;
-  }
-
+function BionicDigit({ char }: { char: string }) {
   return (
-    <span
+    <div
       style={{
-        display: 'inline-block',
         position: 'relative',
+        display: 'inline-flex',
         height: '1.2em',
+        width: '0.6em',
+        alignItems: 'center',
+        justifyContent: 'center',
         overflow: 'hidden',
-        verticalAlign: 'bottom',
       }}
     >
-      {/* Invisible placeholder to reserve exact layout width */}
-      <span style={{ visibility: 'hidden', pointerEvents: 'none' }}>{char}</span>
+      {/* Ghost digit to ensure the container always has the correct width */}
+      <span className="invisible select-none" aria-hidden="true">{char}</span>
       
-      <AnimatePresence initial={false}>
+      <AnimatePresence mode="popLayout" initial={false}>
         <motion.span
-          key={`${char}-${idx}`}
+          key={char}
           initial={{ y: '100%', opacity: 0 }}
-          animate={{ y: '0%', opacity: 1 }}
+          animate={{ y: 0, opacity: 1 }}
           exit={{ y: '-100%', opacity: 0 }}
-          transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-          style={{
-            position: 'absolute',
-            left: 0,
-            top: 0,
-            display: 'inline-block',
-          }}
+          transition={{ duration: 0.4, ease: [0.23, 1, 0.32, 1] }}
+          className="absolute inset-0 flex items-center justify-center font-mono"
         >
           {char}
         </motion.span>
       </AnimatePresence>
-    </span>
-  );
-}
-
-function BionicNumber({ value, className, style }: { value: string; className?: string; style?: React.CSSProperties }) {
-  return (
-    <span className={className} style={{ display: 'inline-flex', alignItems: 'baseline', ...style }}>
-      {value.split('').map((char, i) => (
-        <BionicDigit key={i} char={char} idx={i} />
-      ))}
-    </span>
+    </div>
   );
 }
 
@@ -438,11 +419,11 @@ export function Header() {
           {niftyLive ? (
             <>
               {/* Bionic digit animation on NIFTY level */}
-              <BionicNumber
-                value={niftyLive.level.toLocaleString('en-IN', { maximumFractionDigits: 2, minimumFractionDigits: 2 })}
-                className="num"
-                style={{ color: 'var(--text-secondary)', position: 'relative' }}
-              />
+              <div className="flex" style={{ color: 'var(--text-secondary)', position: 'relative' }}>
+                {niftyLive.level.toLocaleString('en-IN', { maximumFractionDigits: 2, minimumFractionDigits: 2 }).split('').map((char, index) => (
+                  <BionicDigit key={`${index}-${char === '.' ? 'dot' : char}`} char={char} />
+                ))}
+              </div>
               <motion.span
                 key={positive ? 'up' : 'down'}
                 initial={{ opacity: 0, y: positive ? 3 : -3 }}
