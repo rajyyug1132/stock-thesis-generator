@@ -19,6 +19,9 @@ const redis = REDIS_AVAILABLE
     })
   : null;
 
+// Global in-memory cache for local development fallback
+const memoryCache = new Map<string, any>();
+
 export interface CacheResult<T> {
   data: T;
   cached: boolean;
@@ -26,15 +29,34 @@ export interface CacheResult<T> {
   cacheError?: boolean;
 }
 
+export async function readCache(key: string): Promise<any | null> {
+  if (!redis) {
+    return memoryCache.get(key) || null;
+  }
+  try {
+    return await redis.get(key);
+  } catch {
+    return null;
+  }
+}
+
 export async function cached<T>(
   key: string,
   ttlSec: number,
   fetcher: () => Promise<T>
 ): Promise<CacheResult<T>> {
-  // No-cache mode: just call fetcher
+  // Local development fallback
   if (!redis) {
+    if (memoryCache.has(key)) {
+      return {
+        data: memoryCache.get(key) as T,
+        cached: true,
+        stale: false,
+      };
+    }
     const data = await fetcher();
-    return { data, cached: false, stale: false, cacheError: true };
+    memoryCache.set(key, data);
+    return { data, cached: false, stale: false };
   }
 
   // Try to get from cache

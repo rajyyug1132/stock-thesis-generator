@@ -28,6 +28,10 @@ export const StockDataSchema = z.object({
   currency: z.string(),
   prices: z.array(PriceSchema),
   fundamentals: FundamentalsSchema,
+  priceDropEvent: z.object({
+    dropPercent: z.string(),
+    eventHeadline: z.string(),
+  }).nullable().optional(),
   meta: z.object({
     fetchedAt: z.string(),
     cached: z.boolean(),
