@@ -1,7 +1,3 @@
-'use client';
-
-import { LineChart, Line, ResponsiveContainer } from 'recharts';
-
 interface SparklineProps {
   data: number[];
   color?: string;
@@ -9,26 +5,34 @@ interface SparklineProps {
   height?: number;
 }
 
-export function Sparkline({ data, color, width = 80, height = 20 }: SparklineProps) {
-  if (!data || data.length < 2) return <span className="inline-block w-20 h-5" />;
+export function Sparkline({ data, color, width = 200, height = 32 }: SparklineProps) {
+  if (!data || data.length < 2) {
+    return <span style={{ display: 'inline-block', width, height }} />;
+  }
 
-  const autoColor = color ?? (data[data.length - 1] >= data[0] ? '#16a34a' : '#dc2626');
-  const chartData = data.map((v) => ({ v }));
+  const min = Math.min(...data);
+  const max = Math.max(...data);
+  const range = max - min || 1;
+  const autoColor = color ?? (data[data.length - 1] >= data[0] ? 'var(--up)' : 'var(--down)');
+  const step = width / (data.length - 1);
+
+  const points = data
+    .map((v, i) => {
+      const x = (i * step).toFixed(1);
+      const y = (height - ((v - min) / range) * height).toFixed(1);
+      return `${x},${y}`;
+    })
+    .join(' ');
 
   return (
-    <span className="inline-block" style={{ width, height }}>
-      <ResponsiveContainer width="100%" height="100%">
-        <LineChart data={chartData}>
-          <Line
-            type="monotone"
-            dataKey="v"
-            stroke={autoColor}
-            dot={false}
-            strokeWidth={1.5}
-            isAnimationActive={false}
-          />
-        </LineChart>
-      </ResponsiveContainer>
-    </span>
+    <svg
+      width={width}
+      height={height}
+      viewBox={`0 0 ${width} ${height}`}
+      preserveAspectRatio="none"
+      style={{ display: 'block' }}
+    >
+      <polyline points={points} fill="none" stroke={autoColor} strokeWidth="1.5" />
+    </svg>
   );
 }

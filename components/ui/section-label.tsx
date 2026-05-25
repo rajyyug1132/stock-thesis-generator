@@ -1,14 +1,14 @@
-import { ReactNode } from 'react';
+import { CSSProperties, ReactNode } from 'react';
 
-export function SectionLabel({ children, className = '' }: { children: ReactNode; className?: string }) {
+interface SectionLabelProps {
+  children: ReactNode;
+  className?: string;
+  style?: CSSProperties;
+}
+
+export function SectionLabel({ children, className = '', style }: SectionLabelProps) {
   return (
-    <div
-      className={`font-mono uppercase text-tertiary ${className}`}
-      style={{
-        fontSize: 'var(--text-micro)',
-        letterSpacing: '0.15em',
-      }}
-    >
+    <div className={`section-label ${className}`} style={style}>
       {children}
     </div>
   );

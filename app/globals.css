@@ -1,72 +1,106 @@
-@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/* ─────────────────────────────────────────────────────────────────────────────
+   EDITORIAL QUANT — Design Tokens
+   Source of truth. Synced from Editorial Quant Design System/colors_and_type.css
+   Background is fixed at #0b0a09 (deep charcoal).
+   Accent/up palette: mint green #a8c7ba (bullish = brand color).
+───────────────────────────────────────────────────────────────────────────── */
 :root {
-  /* Base — true off-black, warm */
-  --bg-canvas: #0b0a09;
-  --bg-elevated: #14120f;
-  --bg-card: #1a1714;
-  --bg-input: #221e1a;
-  --border-subtle: #2a2521;
-  --border-strong: #3d362f;
+  /* ── Surfaces ──────────────────────────────────────────────────────────── */
+  --bg-canvas:    #0b0a09;   /* page base — deep charcoal */
+  --bg-elevated:  #131210;   /* +1 step: panels, method strip */
+  --bg-card:      #1a1816;   /* +2 step: cards, abstract block */
+  --bg-input:     #211e1b;   /* form inputs, selected states */
+  --bg-rule:      #2a2622;   /* hairline backgrounds, table headers */
 
-  /* Text */
-  --text-primary: #f5f0e8;
-  --text-secondary: #a8a097;
-  --text-tertiary: #6f685f;
-  --text-quaternary: #4a443c;
+  /* ── Borders ───────────────────────────────────────────────────────────── */
+  --border-subtle: #26221f;  /* grid lines, dividers */
+  --border-strong: #3a342d;  /* card outlines, focus rings */
+  --border-mint:   #4d6b5f;  /* accent borders, active states */
 
-  /* Single sharp accent — warm amber */
-  --accent: #d4a574;
-  --accent-hover: #e0b585;
-  --accent-muted: #5c4a36;
+  /* ── Text ──────────────────────────────────────────────────────────────── */
+  --text-primary:    #e6e2dd;  /* bone-white — headlines, body */
+  --text-secondary:  #a6a098;  /* secondary copy, labels */
+  --text-tertiary:   #6c665e;  /* metadata, captions, axis ticks */
+  --text-quaternary: #46413a;  /* hairline labels, EV markers */
 
-  /* Directional — muted teal/coral */
-  --up: #7fb3a3;
-  --up-soft: rgba(127, 179, 163, 0.12);
-  --up-strong: #a5cdbf;
-  --down: #d49484;
-  --down-soft: rgba(212, 148, 132, 0.12);
-  --down-strong: #e4ab9c;
-  --neutral: var(--text-tertiary);
+  /* ── Accent — mint green ───────────────────────────────────────────────── */
+  --accent:        #a8c7ba;   /* mint — bullish, grounded, primary CTA */
+  --accent-hover:  #bcd5ca;   /* hover lift */
+  --accent-muted:  #3d5249;   /* selection bg, accent surfaces */
+  --accent-deep:   #6b8e7e;   /* secondary accent for chart fills */
 
-  /* Semantic */
-  --grounded: var(--up);
-  --unverified: #d4a574;
+  /* ── Directional (data semantics) ──────────────────────────────────────── */
+  --up:          #a8c7ba;              /* matches accent — bullish is the brand */
+  --up-soft:     rgba(168,199,186,0.10);
+  --up-strong:   #c4ddd1;
+  --down:        #c98a7a;              /* muted brick — never pure red */
+  --down-soft:   rgba(201,138,122,0.10);
+  --down-strong: #d8a293;
+  --neutral:     var(--text-tertiary);
 
-  /* Fonts */
-  --font-serif: 'Instrument Serif', Georgia, serif;
-  --font-sans: 'Geist', system-ui, sans-serif;
-  --font-mono: 'Geist Mono', 'JetBrains Mono', monospace;
+  /* ── Semantic (verification) ───────────────────────────────────────────── */
+  --grounded:    var(--accent);        /* claim verified against source */
+  --unverified:  #b8a382;              /* warm sand — unconfirmed numeric */
+  --error:       var(--down);
 
-  /* Type scale */
-  --text-display: clamp(3rem, 6vw, 5.5rem);
-  --text-h1: clamp(2rem, 4vw, 3.5rem);
-  --text-h2: 1.875rem;
-  --text-h3: 1.25rem;
-  --text-body: 0.9375rem;
-  --text-small: 0.8125rem;
-  --text-micro: 0.6875rem;
+  /* ── Type families ─────────────────────────────────────────────────────── */
+  --font-serif: 'Instrument Serif', 'Georgia', 'Times New Roman', serif;
+  --font-sans:  'Geist', 'Inter', system-ui, -apple-system, sans-serif;
+  --font-mono:  'Geist Mono', 'JetBrains Mono', 'SF Mono', 'Menlo', monospace;
 
-  /* Spacing */
-  --space-xs: 0.25rem;
-  --space-sm: 0.5rem;
-  --space-md: 1rem;
-  --space-lg: 1.5rem;
-  --space-xl: 2.5rem;
-  --space-2xl: 4rem;
-  --space-3xl: 6rem;
+  /* ── Type scale ────────────────────────────────────────────────────────── */
+  --text-display: clamp(3rem, 6vw, 5.5rem);  /* hero serif */
+  --text-h1:      clamp(2rem, 4vw, 3.5rem);  /* page headline */
+  --text-h2:      1.875rem;
+  --text-h3:      1.25rem;
+  --text-body:    0.9375rem;                  /* 15px */
+  --text-small:   0.8125rem;                  /* 13px */
+  --text-micro:   0.6875rem;                  /* 11px mono labels */
 
-  /* Motion */
-  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
-  --duration-fast: 180ms;
-  --duration-base: 300ms;
+  /* ── Letter spacing ────────────────────────────────────────────────────── */
+  --tracking-tight: -0.015em;
+  --tracking-mono:   0.04em;   /* default mono tracking */
+  --tracking-label:  0.15em;   /* section labels */
+  --tracking-wide:   0.1em;    /* buttons, badges */
+
+  /* ── Spacing scale (8pt grid) ──────────────────────────────────────────── */
+  --space-xs:  0.25rem;   /*  4px */
+  --space-sm:  0.5rem;    /*  8px */
+  --space-md:  1rem;      /* 16px */
+  --space-lg:  1.5rem;    /* 24px */
+  --space-xl:  2.5rem;    /* 40px */
+  --space-2xl: 4rem;      /* 64px */
+  --space-3xl: 6rem;      /* 96px */
+
+  /* ── Layout ────────────────────────────────────────────────────────────── */
+  --column-max: 64rem;    /* 1024px reading column */
+  --gutter:     2rem;     /* outer page padding */
+
+  /* ── Motion ────────────────────────────────────────────────────────────── */
+  --ease-out:      cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+  --duration-fast: 150ms;
+  --duration-base: 250ms;
   --duration-slow: 500ms;
+
+  /* ── Shorthand rules ───────────────────────────────────────────────────── */
+  --rule:        1px solid var(--border-subtle);
+  --rule-strong: 1px solid var(--border-strong);
+  --rule-accent: 1px solid var(--accent);
+
+  /* No radii in this system — every corner is sharp */
+  --radius-none: 0;
 }
 
+/* ─────────────────────────────────────────────────────────────────────────────
+   BASE
+───────────────────────────────────────────────────────────────────────────── */
 html {
   background: var(--bg-canvas);
 }
@@ -77,35 +111,157 @@ body {
   font-family: var(--font-sans);
   font-size: var(--text-body);
   font-feature-settings: 'ss01', 'cv11';
+  line-height: 1.55;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   SEMANTIC TYPE
+───────────────────────────────────────────────────────────────────────────── */
+.display, h1.display {
+  font-family: var(--font-serif);
+  font-weight: 400;
+  font-size: var(--text-display);
+  line-height: 0.95;
+  letter-spacing: var(--tracking-tight);
+  color: var(--text-primary);
+}
+
+h1, .h1 {
+  font-family: var(--font-serif);
+  font-weight: 400;
+  font-size: var(--text-h1);
+  line-height: 1.05;
+  letter-spacing: var(--tracking-tight);
+  color: var(--text-primary);
+}
+
+h2, .h2 {
+  font-family: var(--font-serif);
+  font-weight: 400;
+  font-size: var(--text-h2);
+  line-height: 1.15;
+  color: var(--text-primary);
+}
+
+h3, .h3 {
+  font-family: var(--font-sans);
+  font-weight: 500;
+  font-size: var(--text-h3);
+  line-height: 1.3;
+  color: var(--text-primary);
+}
+
+blockquote, .abstract {
+  margin: 0;
+  padding-left: var(--space-lg);
+  border-left: 2px solid var(--accent);
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: 1.15rem;
+  line-height: 1.75;
+  color: var(--text-primary);
 }
 
 .font-serif { font-family: var(--font-serif); font-weight: 400; }
-.font-mono { font-family: var(--font-mono); font-feature-settings: 'tnum', 'zero'; }
-.font-sans { font-family: var(--font-sans); }
+.font-mono  { font-family: var(--font-mono);  font-feature-settings: 'tnum', 'zero'; }
+.font-sans  { font-family: var(--font-sans);  }
 
 /* Numbers — always monospace, tabular */
-.num {
+code, .mono, .num {
   font-family: var(--font-mono);
   font-feature-settings: 'tnum', 'zero';
   letter-spacing: -0.01em;
 }
 
-/* Grain overlay for atmosphere */
-body::before {
-  content: '';
-  position: fixed;
-  inset: 0;
-  background-image: url("data:image/svg+xml;utf8,<svg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'><filter id='n'><feTurbulence baseFrequency='0.9'/></filter><rect width='200' height='200' filter='url(%23n)' opacity='0.04'/></svg>");
-  pointer-events: none;
-  z-index: 1;
-  mix-blend-mode: overlay;
-  opacity: 0.5;
-}
-
-body > * { position: relative; z-index: 2; }
-
 ::selection {
   background: var(--accent-muted);
   color: var(--text-primary);
 }
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   LAYOUT
+───────────────────────────────────────────────────────────────────────────── */
+.column {
+  max-width: var(--column-max);
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: var(--gutter);
+  padding-right: var(--gutter);
+  box-sizing: border-box;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   SECTION LABEL — uppercase mono, wide tracking. The voice of the system.
+───────────────────────────────────────────────────────────────────────────── */
+.section-label {
+  font-family: var(--font-mono);
+  font-size: var(--text-micro);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-label);
+  color: var(--text-tertiary);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   DIVIDERS
+───────────────────────────────────────────────────────────────────────────── */
+.divider-dotted {
+  background-image: linear-gradient(to right, var(--border-subtle) 50%, transparent 50%);
+  background-position: bottom;
+  background-size: 4px 1px;
+  background-repeat: repeat-x;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   HOVER DISCIPLINE
+───────────────────────────────────────────────────────────────────────────── */
+.hover-accent {
+  transition: border-color var(--duration-fast) var(--ease-out),
+              color var(--duration-fast) var(--ease-out);
+}
+.hover-accent:hover { border-color: var(--accent); }
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   BUTTONS
+───────────────────────────────────────────────────────────────────────────── */
+.btn {
+  font-family: var(--font-mono);
+  font-size: var(--text-small);
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  padding: 10px 24px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: var(--radius-none);
+  cursor: pointer;
+  transition: background-color var(--duration-fast),
+              color var(--duration-fast),
+              border-color var(--duration-fast);
+}
+.btn:active    { transform: translateY(1px); }
+.btn[disabled] { opacity: 0.4; cursor: not-allowed; }
+
+.btn-primary { background: var(--accent); color: var(--bg-canvas); border: 1px solid var(--accent); }
+.btn-primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
+
+.btn-outline { background: transparent; color: var(--accent); border: 1px solid var(--accent); }
+.btn-outline:hover { background: var(--accent); color: var(--bg-canvas); }
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   GRAIN — subtle paper texture so charcoal isn't dead-flat
+───────────────────────────────────────────────────────────────────────────── */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml;utf8,<svg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'><filter id='n'><feTurbulence baseFrequency='0.9' numOctaves='2'/></filter><rect width='200' height='200' filter='url(%23n)' opacity='0.035'/></svg>");
+  pointer-events: none;
+  z-index: 1;
+  mix-blend-mode: overlay;
+  opacity: 0.55;
+}
+
+body > * { position: relative; z-index: 2; }

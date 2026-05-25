@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" aria-label="Editorial Quant mark">
+  <rect x="0.5" y="0.5" width="63" height="63" fill="none" stroke="#a8c7ba" stroke-width="1"></rect>
+  
+  <text x="32" y="44" font-family="&#39;Instrument Serif&#39;, Georgia, serif" font-size="44" fill="#e6e2dd" text-anchor="middle" font-style="italic">Q</text>
+  <line x1="44" y1="46" x2="58" y2="32" stroke="#a8c7ba" stroke-width="2"></line>
+  <line x1="58" y1="32" x2="58" y2="38" stroke="#a8c7ba" stroke-width="2"></line>
+  <line x1="58" y1="32" x2="52" y2="32" stroke="#a8c7ba" stroke-width="2"></line>
+</svg>

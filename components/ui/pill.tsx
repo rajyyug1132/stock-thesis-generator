@@ -1,6 +1,6 @@
 import { ReactNode } from 'react';
 
-type Variant = 'default' | 'up' | 'down' | 'accent';
+type Variant = 'default' | 'up' | 'down' | 'accent' | 'unverified';
 
 const VARIANT_STYLES: Record<Variant, { color: string; borderColor: string; bg: string }> = {
   default: {
@@ -21,6 +21,11 @@ const VARIANT_STYLES: Record<Variant, { color: string; borderColor: string; bg: 
   accent: {
     color: 'var(--accent)',
     borderColor: 'var(--accent)',
+    bg: 'transparent',
+  },
+  unverified: {
+    color: 'var(--unverified)',
+    borderColor: 'var(--unverified)',
     bg: 'transparent',
   },
 };

@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { MethodStrip } from '@/components/Header';
 import { SectionLabel } from '@/components/ui/section-label';
 import { Panel } from '@/components/ui/panel';
 import { NIFTY_50 } from '@/lib/data/nifty50';
@@ -12,64 +13,69 @@ export default function Home() {
   return (
     <main className="min-h-screen" style={{ background: 'var(--bg-canvas)' }}>
 
-      {/* Hero */}
+      {/* Hero — full-bleed bullish chart behind editorial headline */}
       <div
         className="border-b"
-        style={{ borderColor: 'var(--border-subtle)', padding: '5rem 2rem 4rem' }}
+        style={{ borderColor: 'var(--border-subtle)', position: 'relative', overflow: 'hidden' }}
       >
-        <div className="max-w-4xl mx-auto space-y-6">
+        {/* Full-bleed chart acts as a data field behind the type */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="/assets/hero-bullish-chart.svg"
+          alt=""
+          aria-hidden="true"
+          style={{
+            position: 'absolute', inset: 0,
+            width: '100%', height: '100%',
+            objectFit: 'cover', objectPosition: 'center',
+            opacity: 0.4, pointerEvents: 'none',
+            zIndex: 0,
+          }}
+        />
+        <div
+          className="column"
+          style={{ position: 'relative', zIndex: 1, padding: '96px 32px 88px', display: 'flex', flexDirection: 'column', gap: 22 }}
+        >
           <SectionLabel>NIFTY 50 · AI-GROUNDED THESIS ENGINE</SectionLabel>
           <h1
-            className="font-serif"
             style={{
-              fontSize: 'clamp(2.5rem, 6vw, 4.5rem)',
+              fontFamily: 'var(--font-serif)',
+              fontWeight: 400,
+              fontSize: 'clamp(3rem, 7vw, 5.5rem)',
               color: 'var(--text-primary)',
-              lineHeight: 1.0,
-              maxWidth: '18ch',
+              lineHeight: 0.95,
+              maxWidth: '14ch',
+              margin: 0,
+              letterSpacing: '-0.02em',
             }}
           >
-            Every claim
-            <br />
+            Every claim<br />
             <span style={{ color: 'var(--accent)', fontStyle: 'italic' }}>verified.</span>
           </h1>
           <p
-            className="max-w-prose"
-            style={{ color: 'var(--text-secondary)', fontSize: 'var(--text-body)', lineHeight: 1.65 }}
+            style={{
+              fontFamily: 'var(--font-sans)',
+              color: 'var(--text-secondary)',
+              fontSize: 'var(--text-body)',
+              lineHeight: 1.65,
+              margin: 0,
+              maxWidth: 450,
+            }}
           >
-            AI-generated investment theses for Nifty 50 stocks. Two-pass grounding:
-            Pro model writes, Flash model verifies every numeric claim against live data.
-            No vibe analysis.
+            AI-generated investment theses for Nifty 50 stocks. Two-pass grounding: Pro model writes,
+            Flash model verifies every numeric claim against live data.{' '}
+            <em style={{ fontFamily: 'var(--font-serif)', color: 'var(--accent)' }}>No vibe analysis.</em>
           </p>
-          <div className="flex flex-wrap gap-4 pt-2">
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, paddingTop: 8 }}>
             <Link
               href="/compare"
-              style={{
-                fontFamily: 'var(--font-mono)',
-                fontSize: 'var(--text-small)',
-                letterSpacing: '0.1em',
-                padding: '0.625rem 1.5rem',
-                background: 'var(--accent)',
-                color: 'var(--bg-canvas)',
-                textDecoration: 'none',
-                transition: 'opacity 0.15s',
-              }}
-              className="hover:opacity-80"
+              className="btn btn-primary"
             >
               COMPARE STOCKS →
             </Link>
             <Link
               href="/stock/RELIANCE"
-              style={{
-                fontFamily: 'var(--font-mono)',
-                fontSize: 'var(--text-small)',
-                letterSpacing: '0.1em',
-                padding: '0.625rem 1.5rem',
-                border: '1px solid var(--border-strong)',
-                color: 'var(--text-secondary)',
-                textDecoration: 'none',
-                transition: 'color 0.15s, border-color 0.15s',
-              }}
-              className="hover:opacity-80"
+              className="btn btn-outline"
             >
               SAMPLE THESIS
             </Link>
@@ -77,81 +83,60 @@ export default function Home() {
         </div>
       </div>
 
-      {/* Method strip */}
-      <div
-        className="border-b"
-        style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-elevated)' }}
-      >
-        <div className="max-w-4xl mx-auto px-8 py-6 grid grid-cols-1 sm:grid-cols-3 gap-6">
-          {[
-            { n: '01', label: 'LIVE DATA', desc: 'Yahoo Finance prices, fundamentals, and news fetched at request time.' },
-            { n: '02', label: 'GEMINI PRO THESIS', desc: 'Structured JSON output: summary, bull case, bear case, risks, catalysts.' },
-            { n: '03', label: 'FLASH VALIDATION', desc: 'Every evidence field checked against source. Grounded vs unverified — shown inline.' },
-          ].map(({ n, label, desc }) => (
-            <div key={n} className="space-y-1">
-              <div className="flex items-center gap-2">
-                <span
-                  className="num"
-                  style={{ fontSize: 'var(--text-micro)', color: 'var(--accent)', letterSpacing: '0.1em' }}
-                >
-                  {n}
-                </span>
-                <SectionLabel>{label}</SectionLabel>
-              </div>
-              <p style={{ color: 'var(--text-tertiary)', fontSize: 'var(--text-small)', lineHeight: 1.55 }}>
-                {desc}
-              </p>
-            </div>
-          ))}
-        </div>
-      </div>
+      <MethodStrip />
 
-      {/* Featured stocks */}
-      <div className="max-w-4xl mx-auto px-8 py-12 space-y-6">
-        <SectionLabel>FEATURED STOCKS</SectionLabel>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      {/* Featured stocks grid */}
+      <section className="column" style={{ padding: '48px 32px 16px' }}>
+        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 18 }}>
+          <SectionLabel>FEATURED STOCKS · 6 OF 50</SectionLabel>
+          <Link
+            href="/compare"
+            style={{
+              fontFamily: 'var(--font-mono)', fontSize: 11, letterSpacing: '0.15em',
+              textTransform: 'uppercase', color: 'var(--text-tertiary)',
+            }}
+          >
+            ALL 50 →
+          </Link>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
           {featured.map((stock) => (
             <StockCard key={stock.symbol} stock={stock} />
           ))}
         </div>
-      </div>
+      </section>
 
       {/* Portfolio simulation CTA */}
-      <div className="max-w-4xl mx-auto px-8 pb-16">
+      <section className="column" style={{ padding: '32px 32px 80px' }}>
         <Panel label="PORTFOLIO SIMULATION">
-          <p style={{ color: 'var(--text-secondary)', fontSize: 'var(--text-body)', lineHeight: 1.6 }}>
+          <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: 'var(--text-body)', lineHeight: 1.65, maxWidth: '60ch' }}>
             Select 2–5 stocks on the compare page to run a correlated GBM Monte Carlo simulation.
             Drag the allocation bar to redistribute weights. Instant fan chart with p5/p25/p50/p75/p95 percentile bands.
           </p>
-          <div className="mt-4">
+          <div style={{ marginTop: 16 }}>
             <Link
               href="/compare?symbols=RELIANCE,TCS,INFY"
               style={{
-                fontFamily: 'var(--font-mono)',
-                fontSize: 'var(--text-micro)',
-                letterSpacing: '0.1em',
-                padding: '0.5rem 1.25rem',
-                border: '1px solid var(--border-strong)',
-                color: 'var(--text-tertiary)',
-                textDecoration: 'none',
-                display: 'inline-block',
+                fontFamily: 'var(--font-mono)', fontSize: 11,
+                letterSpacing: '0.1em', padding: '8px 20px',
+                border: '1px solid var(--border-strong)', color: 'var(--text-tertiary)',
+                display: 'inline-block', textTransform: 'uppercase',
               }}
-              className="hover:opacity-80"
             >
               TRY WITH RELIANCE · TCS · INFY →
             </Link>
           </div>
         </Panel>
-      </div>
+      </section>
 
       {/* Footer */}
       <footer
         className="border-t"
-        style={{ borderColor: 'var(--border-subtle)', padding: '1.5rem 2rem' }}
+        style={{ borderColor: 'var(--border-subtle)', padding: '20px 32px' }}
       >
         <div
-          className="max-w-4xl mx-auto font-mono"
-          style={{ fontSize: 'var(--text-micro)', color: 'var(--text-quaternary)', letterSpacing: '0.1em' }}
+          className="column num"
+          style={{ fontSize: 'var(--text-micro)', color: 'var(--text-quaternary)', letterSpacing: '0.1em', textTransform: 'uppercase' }}
         >
           NIFTY 50 THESIS ENGINE · DATA FROM YAHOO FINANCE · AI BY GOOGLE GEMINI · NOT FINANCIAL ADVICE
         </div>
