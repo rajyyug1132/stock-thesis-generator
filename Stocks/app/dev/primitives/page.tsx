@@ -4,6 +4,24 @@ import { Pill } from '@/components/ui/pill';
 import { DataRow } from '@/components/ui/data-row';
 import { Citation } from '@/components/ui/citation';
 import { DirectionalNum } from '@/components/ui/directional-num';
+import { RiskMetricsGrid } from '@/components/ui/risk-metrics-grid';
+import { ThesisAbstract } from '@/components/ui/thesis-abstract';
+import { GroundedClaim } from '@/components/ui/grounded-claim';
+import { AllocationBarDemo } from './allocation-bar-demo';
+import { FanChartDemo } from './fan-chart-demo';
+import { PortfolioPresetsDemo } from './portfolio-presets-demo';
+import type { RiskMetrics } from '@/lib/sim/types';
+
+const MOCK_METRICS: RiskMetrics = {
+  expectedReturn: 0.087,
+  annualizedReturn: 0.143,
+  annualizedVol: 0.21,
+  sharpe: 0.49,
+  var95: -0.062,
+  cvar95: -0.091,
+  probLoss: 0.31,
+  maxDrawdown: -0.118,
+};
 
 export default function PrimitivesPage() {
   return (
@@ -170,6 +188,66 @@ export default function PrimitivesPage() {
         </div>
       </section>
 
+      {/* ─── SIGNATURE COMPONENTS (Phase D) ─── */}
+
+      {/* AllocationBar */}
+      <section className="space-y-4">
+        <SectionLabel>ALLOCATION BAR · DRAG TO REDISTRIBUTE</SectionLabel>
+        <AllocationBarDemo />
+      </section>
+
+      {/* FanChart */}
+      <section className="space-y-4">
+        <SectionLabel>FAN CHART · MONTE CARLO PERCENTILE BANDS</SectionLabel>
+        <FanChartDemo />
+      </section>
+
+      {/* PortfolioPresets */}
+      <section className="space-y-4">
+        <SectionLabel>PORTFOLIO PRESETS</SectionLabel>
+        <PortfolioPresetsDemo />
+      </section>
+
+      {/* RiskMetricsGrid */}
+      <section className="space-y-4">
+        <SectionLabel>RISK METRICS GRID · BLOOMBERG-STYLE · 8 CELLS</SectionLabel>
+        <RiskMetricsGrid metrics={MOCK_METRICS} />
+      </section>
+
+      {/* ThesisAbstract */}
+      <section className="space-y-4">
+        <SectionLabel>THESIS ABSTRACT</SectionLabel>
+        <ThesisAbstract
+          symbol="RELIANCE.NS"
+          generatedAt="2026-05-25T09:00:00Z"
+          groundingScore={0.87}
+          summary="Reliance Industries trades at a P/E of 22.7 with ROE of 9.1%, underpinned by cash-generative Jio and Retail segments. New Energy capex cycle introduces medium-term dilution risk, but sum-of-parts valuation suggests 12–18% upside from current levels assuming no macro shock. The bear case hinges on regulatory tightening in telecom and a slower-than-projected green hydrogen ramp."
+        />
+      </section>
+
+      {/* GroundedClaim */}
+      <section className="space-y-4">
+        <SectionLabel>GROUNDED CLAIM · BULL / BEAR POINTS</SectionLabel>
+        <Panel label="BULL CASE · SAMPLE">
+          <ul className="space-y-4">
+            <GroundedClaim
+              citationN={1}
+              verified
+              claim="Jio segment delivers stable recurring cash flows, reducing portfolio-level volatility."
+              evidence="annualVol 20.02%, Sharpe -0.64 — lower vol than sector median despite scale."
+              verificationReason="Annual vol 0.2002 present in returns data. Sharpe -0.64 matches computed metric."
+            />
+            <GroundedClaim
+              citationN={2}
+              verified={false}
+              claim="Trades at a 14% discount to its 5-year average P/E of 26.4."
+              evidence="Current P/E 22.68 — historical 5Y average not available in source data."
+              verificationReason="5-year average P/E not present in source JSON. Historical comparison cannot be verified."
+            />
+          </ul>
+        </Panel>
+      </section>
+
       {/* Footer */}
       <footer
         className="font-mono pt-8"
@@ -180,7 +258,7 @@ export default function PrimitivesPage() {
           borderTop: '1px solid var(--border-subtle)',
         }}
       >
-        DEV · PHASE C · PRIMITIVES SHOWCASE · NOT FOR PRODUCTION
+        DEV · PHASE D · SIGNATURE COMPONENTS · NOT FOR PRODUCTION
       </footer>
     </main>
   );
