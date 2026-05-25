@@ -5,22 +5,6 @@ import { useEffect, useState } from 'react';
 import { Sparkline } from '@/components/sparkline';
 import type { Nifty50Stock } from '@/lib/data/nifty50';
 
-const SECTOR_COLORS: Record<string, string> = {
-  IT: 'bg-purple-100 text-purple-700',
-  BFSI: 'bg-blue-100 text-blue-700',
-  OIL_GAS: 'bg-orange-100 text-orange-700',
-  AUTO: 'bg-yellow-100 text-yellow-700',
-  FMCG: 'bg-green-100 text-green-700',
-  PHARMA: 'bg-teal-100 text-teal-700',
-  METALS: 'bg-gray-100 text-gray-700',
-  CEMENT: 'bg-stone-100 text-stone-700',
-  TELECOM: 'bg-indigo-100 text-indigo-700',
-  POWER: 'bg-red-100 text-red-700',
-  CONSUMER: 'bg-pink-100 text-pink-700',
-  INFRA: 'bg-cyan-100 text-cyan-700',
-  OTHER: 'bg-gray-100 text-gray-600',
-};
-
 interface StockCardProps {
   stock: Nifty50Stock;
 }
@@ -48,51 +32,86 @@ export function StockCard({ stock }: StockCardProps) {
           const arr = d.prices.map((p) => p.close);
           setCloses(arr);
           setCurrentPrice(arr[arr.length - 1]);
-          // Simple 1Y return from first to last close
-          const ret = (arr[arr.length - 1] - arr[0]) / arr[0];
-          setAnnualReturn(ret);
+          setAnnualReturn((arr[arr.length - 1] - arr[0]) / arr[0]);
         }
       })
-      .catch(() => {/* silently ignore — card renders without chart */});
+      .catch(() => {});
   }, [stock.symbol]);
 
   const sym = shortLabel(stock.symbol);
-  const sectorClass = SECTOR_COLORS[stock.sector] ?? 'bg-gray-100 text-gray-600';
+  const up = annualReturn !== null && annualReturn >= 0;
+  const returnColor = annualReturn === null ? 'var(--text-tertiary)' : up ? 'var(--up)' : 'var(--down)';
 
   return (
     <Link
       href={`/stock/${sym}`}
-      className="block rounded-xl border border-gray-200 bg-white p-5 hover:border-blue-300 hover:shadow-sm transition-all"
+      style={{
+        display: 'block',
+        background: 'var(--bg-elevated)',
+        border: '1px solid var(--border-subtle)',
+        padding: '1.25rem',
+        textDecoration: 'none',
+        transition: 'border-color 0.15s',
+      }}
+      className="hover:border-[var(--accent)]"
     >
+      {/* Symbol + sector */}
       <div className="flex items-start justify-between mb-3">
         <div>
-          <p className="font-bold text-gray-900">{sym}</p>
-          <p className="text-xs text-gray-500 mt-0.5 line-clamp-1">{stock.name}</p>
+          <p
+            className="num"
+            style={{ fontSize: 'var(--text-body)', color: 'var(--text-primary)', fontWeight: 600, letterSpacing: '0.03em' }}
+          >
+            {sym}
+          </p>
+          <p
+            style={{ fontSize: 'var(--text-micro)', color: 'var(--text-tertiary)', marginTop: '2px' }}
+            className="line-clamp-1"
+          >
+            {stock.name}
+          </p>
         </div>
-        <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${sectorClass}`}>
+        <span
+          style={{
+            fontFamily: 'var(--font-mono)',
+            fontSize: 'var(--text-micro)',
+            letterSpacing: '0.07em',
+            padding: '2px 7px',
+            border: '1px solid var(--border-subtle)',
+            color: 'var(--text-tertiary)',
+            whiteSpace: 'nowrap',
+          }}
+        >
           {stock.sector}
         </span>
       </div>
 
       {/* Sparkline */}
-      <div className="my-3 flex items-center" style={{ height: 32 }}>
+      <div className="my-3" style={{ height: 32 }}>
         {closes.length > 1 ? (
-          <div style={{ width: '100%', height: 32 }}>
-            <Sparkline data={closes} width={200} height={32} />
-          </div>
+          <Sparkline data={closes} width={200} height={32} />
         ) : (
-          <div className="w-full h-8 rounded bg-gray-50 animate-pulse" />
+          <div
+            className="w-full h-8 animate-pulse"
+            style={{ background: 'var(--bg-input)' }}
+          />
         )}
       </div>
 
       {/* Price + return */}
       <div className="flex items-end justify-between mt-2">
-        <span className="text-sm font-semibold text-gray-900">
-          {currentPrice != null ? `₹${currentPrice.toFixed(2)}` : '—'}
+        <span
+          className="num"
+          style={{ fontSize: 'var(--text-body)', color: 'var(--text-primary)' }}
+        >
+          {currentPrice !== null ? `₹${currentPrice.toFixed(2)}` : '—'}
         </span>
-        {annualReturn != null && (
-          <span className={`text-xs font-medium ${annualReturn >= 0 ? 'text-green-600' : 'text-red-500'}`}>
-            {annualReturn >= 0 ? '+' : ''}{(annualReturn * 100).toFixed(1)}% 1Y
+        {annualReturn !== null && (
+          <span
+            className="num"
+            style={{ fontSize: 'var(--text-small)', color: returnColor }}
+          >
+            {up ? '+' : ''}{(annualReturn * 100).toFixed(1)}%
           </span>
         )}
       </div>

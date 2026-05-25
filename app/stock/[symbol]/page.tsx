@@ -1,5 +1,10 @@
-import { MetricPill } from '@/components/metric-pill';
-import { ThesisCard } from '@/components/thesis-card';
+import { SectionLabel } from '@/components/ui/section-label';
+import { Panel } from '@/components/ui/panel';
+import { Pill } from '@/components/ui/pill';
+import { DataRow } from '@/components/ui/data-row';
+import { DirectionalNum } from '@/components/ui/directional-num';
+import { ThesisAbstract } from '@/components/ui/thesis-abstract';
+import { GroundedClaim } from '@/components/ui/grounded-claim';
 import { PriceChart, type PricePoint } from '@/components/price-chart';
 import { NewsList, type NewsItem } from '@/components/news-list';
 import type { Thesis, ValidationResult } from '@/lib/ai/schemas';
@@ -27,23 +32,12 @@ interface ThesisResponse {
   error?: string;
 }
 
-function fmt(n: number | null, decimals = 2, suffix = ''): string {
-  if (n === null) return '—';
-  return n.toFixed(decimals) + suffix;
-}
-
-function fmtPct(n: number | null): string {
-  if (n === null) return '—';
-  const sign = n >= 0 ? '+' : '';
-  return sign + (n * 100).toFixed(1) + '%';
-}
-
 async function fetchThesis(symbol: string): Promise<ThesisResponse> {
   try {
     const res = await fetch(`http://localhost:3000/api/thesis/${symbol}`, {
       cache: 'no-store',
     });
-    const data = await res.json() as ThesisResponse;
+    const data = (await res.json()) as ThesisResponse;
     if (!res.ok) {
       return {
         ...data,
@@ -58,16 +52,22 @@ async function fetchThesis(symbol: string): Promise<ThesisResponse> {
   }
 }
 
-const SEVERITY_COLORS: Record<string, string> = {
-  low: 'bg-blue-100 text-blue-700',
-  medium: 'bg-yellow-100 text-yellow-700',
-  high: 'bg-red-100 text-red-700',
+const SEVERITY_VARIANT: Record<string, 'up' | 'down' | 'accent' | undefined> = {
+  low: undefined,
+  medium: 'accent',
+  high: 'down',
 };
 
 const IMPACT_ICONS: Record<string, string> = {
-  positive: '↑',
-  negative: '↓',
-  mixed: '↕',
+  positive: '▲',
+  negative: '▼',
+  mixed: '·',
+};
+
+const IMPACT_COLORS: Record<string, string> = {
+  positive: 'var(--up)',
+  negative: 'var(--down)',
+  mixed: 'var(--text-tertiary)',
 };
 
 export default async function StockPage({
@@ -80,10 +80,17 @@ export default async function StockPage({
 
   if (data.error || !data.thesis) {
     return (
-      <main className="min-h-screen bg-gray-50 p-8">
-        <div className="max-w-2xl mx-auto rounded-xl border border-red-200 bg-red-50 p-6">
-          <p className="text-red-700 font-medium">Failed to load thesis</p>
-          <p className="text-red-500 text-sm mt-1">{data.error ?? 'Unknown error'}</p>
+      <main className="min-h-screen" style={{ background: 'var(--bg-canvas)' }}>
+        <div className="max-w-4xl mx-auto px-8 py-16">
+          <Panel>
+            <SectionLabel>ERROR</SectionLabel>
+            <p className="mt-2" style={{ color: 'var(--down)', fontSize: 'var(--text-body)' }}>
+              {data.error ?? 'Failed to load thesis'}
+            </p>
+            <p className="mt-1" style={{ color: 'var(--text-tertiary)', fontSize: 'var(--text-small)' }}>
+              Gemini quota may be exhausted — resets every 24h on the free tier.
+            </p>
+          </Panel>
         </div>
       </main>
     );
@@ -91,126 +98,252 @@ export default async function StockPage({
 
   const { thesis, validation, context: { keyMetrics, prices = [], news = [] }, meta } = data;
   const score = validation.overallScore;
-  const scorePct = Math.round(score * 100);
-  const scoreColor = score >= 0.8 ? 'text-green-600' : score >= 0.5 ? 'text-yellow-600' : 'text-red-600';
+
+  // Map validation claims by location prefix for lookup
+  const claimsByLocation = new Map(
+    validation.claims.map((c) => [c.location, c])
+  );
+
+  function getValidation(prefix: string, idx: number) {
+    const key = `${prefix}[${idx}]`;
+    return claimsByLocation.get(key) ?? null;
+  }
 
   return (
-    <main className="min-h-screen bg-gray-50">
-      <div className="max-w-5xl mx-auto px-4 py-10 space-y-8">
+    <main className="min-h-screen" style={{ background: 'var(--bg-canvas)' }}>
+      <div className="max-w-4xl mx-auto px-8 py-12 space-y-12">
 
         {/* Header */}
-        <div className="flex items-start justify-between">
-          <div>
-            <div className="flex items-center gap-3 mb-1">
-              <h1 className="text-2xl font-bold text-gray-900">{thesis.symbol}</h1>
-              <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-600">
-                Nifty 50
-              </span>
-            </div>
-            <p className="text-gray-500 text-sm">
-              ₹{keyMetrics.currentPrice.toFixed(2)} &nbsp;·&nbsp;
-              <span className={keyMetrics.annualReturn >= 0 ? 'text-green-600' : 'text-red-500'}>
-                {fmtPct(keyMetrics.annualReturn)} 1Y return
-              </span>
-            </p>
+        <div className="space-y-3">
+          <div className="flex flex-wrap items-center gap-3">
+            <SectionLabel>
+              {thesis.symbol.replace('.NS', '')} · NIFTY 50 · {meta.cached ? 'CACHED' : 'FRESH'}
+            </SectionLabel>
           </div>
-          <div className="text-right">
-            <p className="text-xs text-gray-400">
-              {meta.cached ? '⚡ Cached' : '🔄 Fresh'} · Generated {new Date(thesis.generatedAt).toLocaleDateString()}
-            </p>
+          <div className="flex flex-wrap items-baseline gap-4">
+            <h1
+              className="font-serif"
+              style={{ fontSize: 'var(--text-h1)', color: 'var(--text-primary)', lineHeight: 1.05 }}
+            >
+              {thesis.symbol.replace('.NS', '')}
+            </h1>
+            <div className="flex items-baseline gap-3">
+              <span className="num" style={{ fontSize: 'var(--text-h2)', color: 'var(--text-primary)' }}>
+                ₹{keyMetrics.currentPrice.toFixed(2)}
+              </span>
+              <DirectionalNum
+                value={keyMetrics.annualReturn}
+                format="pct"
+                decimals={1}
+                showTriangle
+                showSign
+                className=""
+              />
+              <span style={{ color: 'var(--text-tertiary)', fontSize: 'var(--text-small)' }}>1Y</span>
+            </div>
           </div>
         </div>
 
-        {/* Metrics row */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-          <MetricPill label="P/E" value={fmt(keyMetrics.peRatio)} />
-          <MetricPill label="ROE" value={fmtPct(keyMetrics.roe)} highlight={keyMetrics.roe !== null && keyMetrics.roe > 0.12 ? 'positive' : 'neutral'} />
-          <MetricPill label="D/E" value={fmt(keyMetrics.debtToEquity)} highlight={keyMetrics.debtToEquity !== null && keyMetrics.debtToEquity > 1 ? 'negative' : 'neutral'} />
-          <MetricPill label="Annual Vol" value={fmtPct(keyMetrics.annualVol)} />
-          <MetricPill label="Sharpe" value={fmt(keyMetrics.sharpe)} highlight={keyMetrics.sharpe > 0.5 ? 'positive' : keyMetrics.sharpe < 0 ? 'negative' : 'neutral'} />
-          <MetricPill label="1Y High" value={`₹${keyMetrics.priceTrend.high1Y.toFixed(0)}`} subtitle={fmtPct(keyMetrics.priceTrend.pctFromHigh) + ' from high'} />
-        </div>
+        {/* Fundamentals */}
+        <section>
+          <SectionLabel>FUNDAMENTALS</SectionLabel>
+          <div className="mt-3 max-w-sm">
+            <DataRow
+              label="P/E Ratio"
+              value={keyMetrics.peRatio !== null ? keyMetrics.peRatio.toFixed(1) : '—'}
+            />
+            <DataRow
+              label="ROE"
+              value={keyMetrics.roe !== null ? (keyMetrics.roe * 100).toFixed(1) + '%' : '—'}
+            />
+            <DataRow
+              label="Debt / Equity"
+              value={keyMetrics.debtToEquity !== null ? keyMetrics.debtToEquity.toFixed(2) : '—'}
+            />
+            <DataRow label="Annual Volatility" value={(keyMetrics.annualVol * 100).toFixed(1) + '%'} />
+            <DataRow
+              label="Sharpe"
+              value={
+                <DirectionalNum
+                  value={keyMetrics.sharpe}
+                  format="num"
+                  decimals={2}
+                  showSign
+                  showTriangle
+                />
+              }
+            />
+            <DataRow
+              label="1Y High"
+              value={`₹${keyMetrics.priceTrend.high1Y.toFixed(0)}`}
+              divider={false}
+            />
+          </div>
+        </section>
 
         {/* Price chart */}
         {prices.length > 1 && (
-          <div className="rounded-xl border border-gray-200 bg-white p-6">
-            <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-4">1-Year Price</p>
-            <PriceChart data={prices} height={280} />
-          </div>
+          <section>
+            <SectionLabel>1-YEAR PRICE</SectionLabel>
+            <div
+              className="mt-3"
+              style={{
+                border: '1px solid var(--border-subtle)',
+                padding: '1rem',
+                background: 'var(--bg-card)',
+              }}
+            >
+              <PriceChart data={prices} height={220} />
+            </div>
+          </section>
         )}
 
-        {/* Summary */}
-        <div className="rounded-xl border border-gray-200 bg-white p-6">
-          <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-2">Summary</p>
-          <p className="text-gray-800 leading-relaxed">{thesis.summary}</p>
-        </div>
+        {/* Abstract */}
+        <section>
+          <ThesisAbstract
+            symbol={thesis.symbol}
+            generatedAt={thesis.generatedAt}
+            groundingScore={score}
+            summary={thesis.summary}
+          />
+        </section>
 
         {/* Bull / Bear */}
-        <div className="grid md:grid-cols-2 gap-4">
-          <ThesisCard
-            variant="bull"
-            headline={thesis.bullCase.headline}
-            points={thesis.bullCase.points}
-            claims={validation.claims}
-            locationPrefix="bullCase.points"
-          />
-          <ThesisCard
-            variant="bear"
-            headline={thesis.bearCase.headline}
-            points={thesis.bearCase.points}
-            claims={validation.claims}
-            locationPrefix="bearCase.points"
-          />
-        </div>
+        <section className="grid md:grid-cols-2 gap-6">
+          {/* Bull case */}
+          <Panel label={`BULL CASE · ${thesis.bullCase.points.length} POINTS`}>
+            <p
+              className="font-serif italic mb-4"
+              style={{ fontSize: 'var(--text-body)', color: 'var(--up)', lineHeight: 1.5 }}
+            >
+              {thesis.bullCase.headline}
+            </p>
+            <ul className="space-y-4">
+              {thesis.bullCase.points.map((pt, i) => {
+                const v = getValidation('bullCase.points', i);
+                return (
+                  <GroundedClaim
+                    key={i}
+                    citationN={i + 1}
+                    claim={pt.claim}
+                    evidence={pt.evidence}
+                    verified={v?.verified ?? false}
+                    verificationReason={v?.reason ?? 'Not validated'}
+                  />
+                );
+              })}
+            </ul>
+          </Panel>
+
+          {/* Bear case */}
+          <Panel label={`BEAR CASE · ${thesis.bearCase.points.length} POINTS`}>
+            <p
+              className="font-serif italic mb-4"
+              style={{ fontSize: 'var(--text-body)', color: 'var(--down)', lineHeight: 1.5 }}
+            >
+              {thesis.bearCase.headline}
+            </p>
+            <ul className="space-y-4">
+              {thesis.bearCase.points.map((pt, i) => {
+                const v = getValidation('bearCase.points', i);
+                return (
+                  <GroundedClaim
+                    key={i}
+                    citationN={thesis.bullCase.points.length + i + 1}
+                    claim={pt.claim}
+                    evidence={pt.evidence}
+                    verified={v?.verified ?? false}
+                    verificationReason={v?.reason ?? 'Not validated'}
+                  />
+                );
+              })}
+            </ul>
+          </Panel>
+        </section>
 
         {/* Risks */}
         {thesis.risks.length > 0 && (
-          <div className="rounded-xl border border-gray-200 bg-white p-6">
-            <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-4">Risks</p>
-            <ul className="space-y-2">
+          <section>
+            <SectionLabel>RISKS · {thesis.risks.length}</SectionLabel>
+            <div className="mt-3 space-y-2">
               {thesis.risks.map((r, i) => (
-                <li key={i} className="flex items-center gap-3 text-sm">
-                  <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${SEVERITY_COLORS[r.severity] ?? 'bg-gray-100 text-gray-600'}`}>
-                    {r.severity}
+                <div key={i} className="flex items-center gap-3">
+                  <Pill variant={SEVERITY_VARIANT[r.severity]}>
+                    {r.severity.toUpperCase()}
+                  </Pill>
+                  <span style={{ color: 'var(--text-primary)', fontSize: 'var(--text-body)' }}>
+                    {r.risk}
                   </span>
-                  <span className="text-gray-700">{r.risk}</span>
-                </li>
+                </div>
               ))}
-            </ul>
-          </div>
+            </div>
+          </section>
         )}
 
         {/* Catalysts */}
         {thesis.catalysts.length > 0 && (
-          <div className="rounded-xl border border-gray-200 bg-white p-6">
-            <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-4">Catalysts</p>
-            <ul className="space-y-3">
+          <section>
+            <SectionLabel>CATALYSTS · {thesis.catalysts.length}</SectionLabel>
+            <div className="mt-3 max-w-lg">
               {thesis.catalysts.map((c, i) => (
-                <li key={i} className="flex items-start gap-3 text-sm">
-                  <span className={`mt-0.5 text-base ${c.impact === 'positive' ? 'text-green-500' : c.impact === 'negative' ? 'text-red-500' : 'text-gray-400'}`}>
-                    {IMPACT_ICONS[c.impact]}
-                  </span>
-                  <div>
-                    <p className="font-medium text-gray-800">{c.event}</p>
-                    <p className="text-xs text-gray-400">{c.timeframe}</p>
-                  </div>
-                </li>
+                <DataRow
+                  key={i}
+                  label={
+                    <span className="flex items-center gap-2">
+                      <span style={{ color: IMPACT_COLORS[c.impact] }}>
+                        {IMPACT_ICONS[c.impact]}
+                      </span>
+                      {c.event}
+                    </span>
+                  }
+                  value={c.timeframe}
+                  divider={i < thesis.catalysts.length - 1}
+                />
               ))}
-            </ul>
-          </div>
+            </div>
+          </section>
         )}
 
-        {/* Recent News */}
-        <div className="rounded-xl border border-gray-200 bg-white p-6">
-          <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-4">Recent News</p>
-          <NewsList items={news} />
-        </div>
+        {/* News */}
+        {news.length > 0 && (
+          <section>
+            <SectionLabel>RECENT NEWS · {news.length}</SectionLabel>
+            <Panel className="mt-3">
+              <NewsList items={news} />
+            </Panel>
+          </section>
+        )}
 
-        {/* Grounding score */}
-        <div className="flex items-center justify-between rounded-lg bg-gray-100 px-5 py-3 text-sm">
-          <span className="text-gray-600">Overall grounding score</span>
-          <span className={`font-semibold ${scoreColor}`}>{scorePct}% verified</span>
-        </div>
+        {/* Grounding score footer */}
+        <footer
+          style={{
+            borderTop: '1px solid var(--border-subtle)',
+            paddingTop: '1.5rem',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+          }}
+        >
+          <span
+            style={{
+              fontFamily: 'var(--font-mono)',
+              fontSize: 'var(--text-micro)',
+              color: 'var(--text-tertiary)',
+              letterSpacing: '0.08em',
+            }}
+          >
+            GROUNDING SCORE
+          </span>
+          <span
+            className="num"
+            style={{
+              fontSize: 'var(--text-body)',
+              color: score >= 0.8 ? 'var(--up)' : score >= 0.5 ? 'var(--unverified)' : 'var(--down)',
+            }}
+          >
+            {Math.round(score * 100)}% verified
+          </span>
+        </footer>
 
       </div>
     </main>

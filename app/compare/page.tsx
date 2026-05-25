@@ -1,7 +1,11 @@
 import { redirect } from 'next/navigation';
+import { SectionLabel } from '@/components/ui/section-label';
+import { Panel } from '@/components/ui/panel';
+import { Pill } from '@/components/ui/pill';
 import { SymbolPicker } from '@/components/symbol-picker';
 import { ComparisonTable } from '@/components/comparison-table';
 import { CorrelationHeatmap } from '@/components/correlation-heatmap';
+import { PortfolioSimulator } from '@/components/portfolio-simulator';
 import { normalizeTicker } from '@/lib/utils/tickers';
 import { getName } from '@/lib/data/nifty50';
 
@@ -23,12 +27,33 @@ interface CompareResponse {
   error?: string;
 }
 
+interface CovResponse {
+  symbols: string[];
+  initialPrices: number[];
+  dailyMeans: number[];
+  covariance: number[][];
+  error?: string;
+}
+
 async function fetchCompare(symbols: string[]): Promise<CompareResponse> {
   const syms = symbols.join(',');
   const res = await fetch(`http://localhost:3000/api/compare?symbols=${syms}`, {
     cache: 'no-store',
   });
   return res.json() as Promise<CompareResponse>;
+}
+
+async function fetchCovariance(symbols: string[]): Promise<CovResponse | null> {
+  try {
+    const syms = symbols.join(',');
+    const res = await fetch(`http://localhost:3000/api/covariance?symbols=${syms}`, {
+      cache: 'no-store',
+    });
+    if (!res.ok) return null;
+    return res.json() as Promise<CovResponse>;
+  } catch {
+    return null;
+  }
 }
 
 function shortLabel(sym: string): string {
@@ -42,14 +67,22 @@ export default async function ComparePage({
 }) {
   const { symbols: symbolsParam } = await searchParams;
 
-  // No symbols — show just picker
+  // No symbols — show picker
   if (!symbolsParam || symbolsParam.trim() === '') {
     return (
-      <main className="min-h-screen bg-gray-50">
-        <div className="max-w-3xl mx-auto px-4 py-16 space-y-8">
+      <main className="min-h-screen" style={{ background: 'var(--bg-canvas)' }}>
+        <div className="max-w-3xl mx-auto px-8 py-16 space-y-8">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Compare Stocks</h1>
-            <p className="text-gray-500 text-sm mt-1">Select 2–5 Nifty 50 stocks to compare.</p>
+            <SectionLabel>PORTFOLIO · COMPARE</SectionLabel>
+            <h1
+              className="font-serif mt-2"
+              style={{ fontSize: 'var(--text-h1)', color: 'var(--text-primary)', lineHeight: 1.1 }}
+            >
+              Compare Stocks
+            </h1>
+            <p className="mt-3 max-w-prose" style={{ color: 'var(--text-secondary)', fontSize: 'var(--text-body)' }}>
+              Select 2–5 Nifty 50 stocks to compare fundamentals, returns, correlation, and run a Monte Carlo portfolio simulation.
+            </p>
           </div>
           <SymbolPicker />
         </div>
@@ -59,15 +92,12 @@ export default async function ComparePage({
 
   const raw = symbolsParam.split(',').map((s) => s.trim()).filter(Boolean);
 
-  // 1 symbol → redirect to stock page
   if (raw.length === 1) {
     redirect(`/stock/${raw[0].toUpperCase()}`);
   }
 
-  // >5 → trim to 5
   const capped = raw.slice(0, 5);
 
-  // Normalize (add .NS suffix for API)
   const normalized: string[] = [];
   const invalidSymbols: string[] = [];
   for (const sym of capped) {
@@ -80,37 +110,41 @@ export default async function ComparePage({
 
   if (normalized.length < 2) {
     return (
-      <main className="min-h-screen bg-gray-50">
-        <div className="max-w-3xl mx-auto px-4 py-16 space-y-8">
-          <div className="rounded-xl border border-red-200 bg-red-50 p-6">
-            <p className="text-red-700 font-medium">Invalid symbols</p>
-            <p className="text-red-500 text-sm mt-1">
+      <main className="min-h-screen" style={{ background: 'var(--bg-canvas)' }}>
+        <div className="max-w-3xl mx-auto px-8 py-16 space-y-8">
+          <Panel>
+            <SectionLabel>ERROR · INVALID SYMBOLS</SectionLabel>
+            <p className="mt-2" style={{ color: 'var(--down)', fontSize: 'var(--text-body)' }}>
               Could not parse: {invalidSymbols.join(', ')}. Need at least 2 valid Nifty 50 tickers.
             </p>
-          </div>
+          </Panel>
           <SymbolPicker />
         </div>
       </main>
     );
   }
 
-  const data = await fetchCompare(normalized);
+  const [data, covData] = await Promise.all([
+    fetchCompare(normalized),
+    normalized.length >= 2 ? fetchCovariance(normalized) : Promise.resolve(null),
+  ]);
 
   if (data.error) {
     return (
-      <main className="min-h-screen bg-gray-50">
-        <div className="max-w-3xl mx-auto px-4 py-16 space-y-8">
-          <div className="rounded-xl border border-red-200 bg-red-50 p-6">
-            <p className="text-red-700 font-medium">Failed to load comparison</p>
-            <p className="text-red-500 text-sm mt-1">{data.error}</p>
-          </div>
+      <main className="min-h-screen" style={{ background: 'var(--bg-canvas)' }}>
+        <div className="max-w-3xl mx-auto px-8 py-16 space-y-8">
+          <Panel>
+            <SectionLabel>ERROR</SectionLabel>
+            <p className="mt-2" style={{ color: 'var(--down)', fontSize: 'var(--text-body)' }}>
+              {data.error}
+            </p>
+          </Panel>
           <SymbolPicker initialSymbols={normalized} />
         </div>
       </main>
     );
   }
 
-  // Current price = last value in aligned closes
   const currentPrices: Record<string, number> = {};
   for (const sym of data.symbols) {
     const arr = data.aligned.closes[sym];
@@ -118,38 +152,44 @@ export default async function ComparePage({
   }
 
   return (
-    <main className="min-h-screen bg-gray-50">
-      <div className="max-w-5xl mx-auto px-4 py-10 space-y-8">
+    <main className="min-h-screen" style={{ background: 'var(--bg-canvas)' }}>
+      <div className="max-w-5xl mx-auto px-8 py-12 space-y-14">
 
         {/* Header */}
-        <div className="flex items-start justify-between flex-wrap gap-4">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">
-              Comparing {data.symbols.length} stocks
+        <div className="space-y-3">
+          <SectionLabel>PORTFOLIO · COMPARING {data.symbols.length} STOCKS</SectionLabel>
+          <div className="flex flex-wrap items-baseline gap-x-4 gap-y-2">
+            <h1
+              className="font-serif"
+              style={{ fontSize: 'var(--text-h1)', color: 'var(--text-primary)', lineHeight: 1.05 }}
+            >
+              {data.symbols.map((s) => shortLabel(s)).join(' · ')}
             </h1>
-            <div className="flex flex-wrap gap-2 mt-2">
-              {data.symbols.map((sym) => (
-                <span
-                  key={sym}
-                  className="rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-700"
-                >
-                  {shortLabel(sym)} · {getName(sym) ?? sym}
-                </span>
-              ))}
-            </div>
           </div>
-          {/* Re-pick */}
-          <a
-            href="/compare"
-            className="text-sm text-blue-600 hover:underline self-start"
-          >
-            ← Change selection
-          </a>
+          <div className="flex flex-wrap gap-2">
+            {data.symbols.map((sym) => (
+              <Pill key={sym}>{getName(sym) ?? shortLabel(sym)}</Pill>
+            ))}
+            <a
+              href="/compare"
+              style={{
+                fontFamily: 'var(--font-mono)',
+                fontSize: 'var(--text-micro)',
+                color: 'var(--text-tertiary)',
+                textDecoration: 'underline',
+                textUnderlineOffset: '3px',
+                letterSpacing: '0.06em',
+                alignSelf: 'center',
+              }}
+            >
+              ← CHANGE
+            </a>
+          </div>
         </div>
 
         {/* Comparison table */}
-        <div className="rounded-xl border border-gray-200 bg-white p-6">
-          <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-4">Metrics</p>
+        <section className="space-y-3">
+          <SectionLabel>METRICS</SectionLabel>
           <ComparisonTable
             symbols={data.symbols}
             stats={data.stats}
@@ -157,28 +197,53 @@ export default async function ComparePage({
             closes={data.aligned.closes}
             currentPrices={currentPrices}
           />
-        </div>
+        </section>
 
         {/* Correlation heatmap */}
-        <div className="rounded-xl border border-gray-200 bg-white p-6">
-          <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-2">Correlation</p>
-          <p className="text-xs text-gray-400 mb-4">1-year daily log-returns, aligned on common trading days</p>
-          <CorrelationHeatmap
-            symbols={data.correlation.symbols}
-            matrix={data.correlation.matrix}
-          />
-        </div>
+        <section className="space-y-3">
+          <SectionLabel>CORRELATION · 1Y DAILY LOG-RETURNS</SectionLabel>
+          <Panel>
+            <CorrelationHeatmap
+              symbols={data.correlation.symbols}
+              matrix={data.correlation.matrix}
+            />
+          </Panel>
+        </section>
 
-        {/* Day 5 placeholder */}
-        <div className="rounded-xl border border-dashed border-gray-300 bg-gray-50 p-6 text-center text-sm text-gray-400">
-          Portfolio simulation coming Day 5.
-        </div>
+        {/* Portfolio simulator */}
+        <section className="space-y-3">
+          <SectionLabel>PORTFOLIO SIMULATION · CORRELATED GBM</SectionLabel>
+          {covData && !covData.error ? (
+            <Panel label="SIMULATOR">
+              <PortfolioSimulator
+                symbols={covData.symbols}
+                initialPrices={covData.initialPrices}
+                dailyMeans={covData.dailyMeans}
+                covariance={covData.covariance}
+              />
+            </Panel>
+          ) : (
+            <Panel>
+              <p
+                style={{
+                  fontFamily: 'var(--font-mono)',
+                  fontSize: 'var(--text-small)',
+                  color: 'var(--text-tertiary)',
+                }}
+              >
+                Covariance data unavailable — simulation requires price history for all selected symbols.
+              </p>
+            </Panel>
+          )}
+        </section>
 
-        {/* Symbol picker to change selection */}
-        <div className="rounded-xl border border-gray-200 bg-white p-6">
-          <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-4">Adjust Selection</p>
-          <SymbolPicker initialSymbols={normalized} />
-        </div>
+        {/* Symbol picker */}
+        <section className="space-y-3">
+          <SectionLabel>ADJUST SELECTION</SectionLabel>
+          <Panel>
+            <SymbolPicker initialSymbols={normalized} />
+          </Panel>
+        </section>
 
       </div>
     </main>
