@@ -39,6 +39,10 @@ export const ThesisSchema = z.object({
   bearCase: ThesisCaseSchema,
   risks: z.array(RiskSchema).min(0).max(4),
   catalysts: z.array(CatalystSchema).min(0).max(4),
+  priceDropEvent: z.object({
+    dropPercent: z.string(),
+    eventHeadline: z.string(),
+  }).nullable().optional(),
 });
 
 export type Thesis = z.infer<typeof ThesisSchema>;
@@ -120,6 +124,15 @@ export const thesisResponseSchema = {
         },
         required: ['event', 'timeframe', 'impact'],
       },
+    },
+    priceDropEvent: {
+      type: Type.OBJECT,
+      description: 'Link a significant price drop (negative annual return) to a specific recent news event headline from the context. Set to null if no major drop or no linked news is found.',
+      properties: {
+        dropPercent: { type: Type.STRING, description: 'Percentage of price drop, e.g. "-34.7%"' },
+        eventHeadline: { type: Type.STRING, description: 'Headline of the news event causing or linked to this drop, e.g. "Weak Q4 guidance"' },
+      },
+      required: ['dropPercent', 'eventHeadline'],
     },
   },
   required: ['symbol', 'generatedAt', 'summary', 'bullCase', 'bearCase', 'risks', 'catalysts'],

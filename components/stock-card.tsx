@@ -10,10 +10,68 @@ import type { Fundamentals } from '@/lib/data/types';
 interface StockApiData {
   prices?: Array<{ close: number }>;
   fundamentals?: Fundamentals;
+  priceDropEvent?: { dropPercent: string; eventHeadline: string } | null;
 }
 
 interface StockCardProps {
   stock: Nifty50Stock;
+}
+
+function NewsSentimentTooltip({ headline }: { headline: string }) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <span className="relative inline-flex items-center select-none" style={{ fontStyle: 'normal' }}>
+      <button
+        type="button"
+        onMouseEnter={() => setOpen(true)}
+        onMouseLeave={() => setOpen(false)}
+        onFocus={() => setOpen(true)}
+        onBlur={() => setOpen(false)}
+        style={{
+          color: '#d4a574',
+          fontSize: '11px',
+          background: 'none',
+          border: 'none',
+          padding: 0,
+          cursor: 'help',
+          display: 'inline-flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          width: '12px',
+          height: '12px',
+          lineHeight: '12px',
+        }}
+      >
+        ⓘ
+      </button>
+      {open && (
+        <span
+          role="tooltip"
+          className="absolute z-50 p-2 text-left normal-case shadow-xl font-sans"
+          style={{
+            bottom: '100%',
+            right: 0,
+            marginBottom: '6px',
+            width: '220px',
+            background: 'var(--bg-card)',
+            border: '1px solid var(--border-strong)',
+            color: 'var(--text-primary)',
+            fontSize: '10px',
+            fontWeight: 'normal',
+            lineHeight: 1.4,
+            borderRadius: '0px',
+          }}
+        >
+          <div style={{ fontFamily: 'var(--font-mono)', fontSize: '8px', color: '#d4a574', marginBottom: '3px', fontWeight: 600, letterSpacing: '0.05em' }}>
+            WARNING: SENTIMENT DROP LINK
+          </div>
+          {headline}
+          <span className="absolute top-full right-2 border-4 border-transparent border-t-strong" style={{ borderTopColor: 'var(--border-strong)' }} />
+        </span>
+      )}
+    </span>
+  );
 }
 
 /* ── Helpers ──────────────────────────────────────────────────────────────── */
@@ -39,6 +97,7 @@ export function StockCard({ stock }: StockCardProps) {
   const [currentPrice, setCurrentPrice] = useState<number | null>(null);
   const [annualReturn, setAnnualReturn] = useState<number | null>(null);
   const [fund, setFund]               = useState<Fundamentals | null>(null);
+  const [dropEvent, setDropEvent]     = useState<{ dropPercent: string; eventHeadline: string } | null>(null);
 
   const sym = shortLabel(stock.symbol);
 
@@ -47,6 +106,7 @@ export function StockCard({ stock }: StockCardProps) {
       .then((r) => r.json())
       .then((d: StockApiData) => {
         if (d.fundamentals) setFund(d.fundamentals);
+        if (d.priceDropEvent) setDropEvent(d.priceDropEvent);
         if (d.prices && d.prices.length > 1) {
           const arr = d.prices.map((p) => p.close);
           setCloses(arr);
@@ -58,8 +118,16 @@ export function StockCard({ stock }: StockCardProps) {
   }, [sym]);
 
   const up = annualReturn !== null && annualReturn >= 0;
+  const hasDropEvent = dropEvent !== null;
+  
   const returnColor =
-    annualReturn === null ? 'var(--text-tertiary)' : up ? 'var(--up)' : 'var(--down)';
+    annualReturn === null
+      ? 'var(--text-tertiary)'
+      : hasDropEvent
+      ? '#d4a574' // Warning Rust
+      : up
+      ? 'var(--up)'
+      : 'var(--down)';
 
   return (
     <Link
@@ -124,7 +192,7 @@ export function StockCard({ stock }: StockCardProps) {
       {/* Sparkline — pure 1.5px mint polyline, no fill */}
       <div style={{ height: 32, margin: '12px 0' }}>
         {closes.length > 1 ? (
-          <Sparkline data={closes} width={240} height={32} color="var(--up)" />
+          <Sparkline data={closes} width={240} height={32} color={hasDropEvent ? '#d4a574' : 'var(--up)'} />
         ) : (
           <div style={{ width: '100%', height: 32, background: 'var(--bg-input)' }} />
         )}
@@ -136,9 +204,14 @@ export function StockCard({ stock }: StockCardProps) {
           {currentPrice != null ? `₹${currentPrice.toFixed(2)}` : '—'}
         </span>
         {annualReturn !== null && (
-          <span className="num" style={{ fontSize: 'var(--text-small)', color: returnColor }}>
-            {up ? '+' : ''}{(annualReturn * 100).toFixed(1)}%
-          </span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span className="num" style={{ fontSize: 'var(--text-small)', color: returnColor }}>
+              {up ? '+' : ''}{(annualReturn * 100).toFixed(1)}%
+            </span>
+            {hasDropEvent && (
+              <NewsSentimentTooltip headline={dropEvent.eventHeadline} />
+            )}
+          </div>
         )}
       </div>
     </Link>

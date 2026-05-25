@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { normalizeTicker, InvalidTickerError } from '@/lib/utils/tickers';
 import { fetchPrices, fetchFundamentals, YahooFetchError } from '@/lib/data/yahoo';
 import { normalizeFundamentals } from '@/lib/data/normalize';
-import { cached } from '@/lib/cache/redis';
+import { cached, readCache } from '@/lib/cache/redis';
 import { StockDataSchema } from '@/lib/data/types';
 import logger from '@/lib/utils/logger';
 
@@ -47,7 +47,18 @@ export async function GET(
     const rawFundamentals = fundamentalsResult.data;
     const fundamentals = normalizeFundamentals(rawFundamentals);
 
-    // 3. Construct response
+    // 3. Check for cached thesis to attach priceDropEvent if exists
+    let priceDropEvent = null;
+    try {
+      const thesisCached = await readCache(`thesis:${symbol}:v2`);
+      if (thesisCached && thesisCached.thesis) {
+        priceDropEvent = thesisCached.thesis.priceDropEvent || null;
+      }
+    } catch (err) {
+      logger.warn({ symbol, error: err instanceof Error ? err.message : String(err) }, 'Failed to read cached thesis');
+    }
+
+    // 4. Construct response
     const fetchedAt = new Date().toISOString();
     const isCached = pricesResult.cached || fundamentalsResult.cached;
     const stale = pricesResult.stale || fundamentalsResult.stale;
@@ -59,6 +70,7 @@ export async function GET(
       currency: 'INR',
       prices,
       fundamentals,
+      priceDropEvent,
       meta: {
         fetchedAt,
         cached: isCached,
