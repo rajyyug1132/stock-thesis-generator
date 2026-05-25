@@ -74,7 +74,7 @@ function JitterGraph() {
       width={W} height={H}
       viewBox={`0 0 ${W} ${H}`}
       preserveAspectRatio="none"
-      style={{ position: 'absolute', right: 0, top: 0, opacity: 0.18, pointerEvents: 'none' }}
+      style={{ position: 'absolute', right: 0, top: 0, opacity: 0.25, pointerEvents: 'none' }}
       aria-hidden="true"
     >
       <motion.polyline

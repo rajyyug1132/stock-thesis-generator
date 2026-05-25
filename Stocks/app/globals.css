@@ -12,11 +12,11 @@
 ───────────────────────────────────────────────────────────────────────────── */
 :root {
   /* ── Surfaces ──────────────────────────────────────────────────────────── */
-  --bg-canvas:    #0b0a09;   /* page base — deep charcoal */
-  --bg-elevated:  #131210;   /* +1 step: panels, method strip */
+  --bg-canvas:    #050505;   /* page base — deep ink black */
+  --bg-elevated:  #0d0e10;   /* +1 step: panels, method strip - cooler gray */
   --bg-card:      #1a1816;   /* +2 step: cards, abstract block */
   --bg-input:     #211e1b;   /* form inputs, selected states */
-  --bg-rule:      #2a2622;   /* hairline backgrounds, table headers */
+  --bg-rule:      #1a1c1e;   /* brighter lines for the grid */
 
   /* ── Borders ───────────────────────────────────────────────────────────── */
   --border-subtle: #26221f;  /* grid lines, dividers */
@@ -24,23 +24,23 @@
   --border-mint:   #4d6b5f;  /* accent borders, active states */
 
   /* ── Text ──────────────────────────────────────────────────────────────── */
-  --text-primary:    #e6e2dd;  /* bone-white — headlines, body */
-  --text-secondary:  #a6a098;  /* secondary copy, labels */
+  --text-primary:    #f5f4f0;  /* bone-white — headlines, body */
+  --text-secondary:  #71717a;  /* zinc-muted — secondary copy, labels */
   --text-tertiary:   #6c665e;  /* metadata, captions, axis ticks */
   --text-quaternary: #46413a;  /* hairline labels, EV markers */
 
-  /* ── Accent — mint green ───────────────────────────────────────────────── */
-  --accent:        #a8c7ba;   /* mint — bullish, grounded, primary CTA */
+  /* ── Accent — neon mint green ───────────────────────────────────────────────── */
+  --accent:        #c1f2e0;   /* brighter mint — bullish, grounded, primary CTA */
   --accent-hover:  #bcd5ca;   /* hover lift */
   --accent-muted:  #3d5249;   /* selection bg, accent surfaces */
-  --accent-deep:   #6b8e7e;   /* secondary accent for chart fills */
+  --accent-deep:   #2d4a41;   /* low-light mint for backgrounds/ghost fills */
 
   /* ── Directional (data semantics) ──────────────────────────────────────── */
-  --up:          #a8c7ba;              /* matches accent — bullish is the brand */
-  --up-soft:     rgba(168,199,186,0.10);
+  --up:          #4ade80;              /* Vivid Emerald */
+  --up-soft:     rgba(74,222,128,0.10);
   --up-strong:   #c4ddd1;
-  --down:        #c98a7a;              /* muted brick — never pure red */
-  --down-soft:   rgba(201,138,122,0.10);
+  --down:        #fb7185;              /* Rose Red */
+  --down-soft:   rgba(251,113,133,0.10);
   --down-strong: #d8a293;
   --neutral:     var(--text-tertiary);
 

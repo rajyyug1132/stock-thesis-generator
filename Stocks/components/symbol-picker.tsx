@@ -84,19 +84,19 @@ export function SymbolPicker({ initialSymbols = [] }: SymbolPickerProps) {
           {selected.map((sym) => (
             <span
               key={sym}
-              className="inline-flex items-center gap-1.5 rounded-full bg-blue-100 px-3 py-1 text-xs font-medium text-blue-800"
+              className="inline-flex items-center gap-1.5 border border-zinc-800 bg-[#0d0e10] px-3 py-1 text-xs font-medium text-[var(--text-primary)]"
             >
               {shortLabel(sym)}
               <button
                 onClick={() => remove(sym)}
-                className="text-blue-500 hover:text-blue-800 transition-colors leading-none"
+                className="text-[var(--text-secondary)] hover:text-[var(--down)] transition-colors leading-none"
                 aria-label={`Remove ${sym}`}
               >
                 ×
               </button>
             </span>
           ))}
-          <span className="text-xs text-gray-400 self-center">
+          <span className="text-xs text-[var(--text-tertiary)] self-center font-mono">
             {selected.length}/{MAX} selected
           </span>
         </div>
@@ -110,13 +110,13 @@ export function SymbolPicker({ initialSymbols = [] }: SymbolPickerProps) {
           onChange={(e) => { setQuery(e.target.value); setOpen(true); }}
           onFocus={() => setOpen(true)}
           placeholder="Search Nifty 50 stocks..."
-          className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          className="w-full border border-zinc-800 bg-[#0d0e10] px-4 py-2.5 text-sm text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent)] transition-colors placeholder:text-[var(--text-tertiary)] font-mono"
         />
         {open && (
-          <div className="absolute z-50 mt-1 w-full max-h-72 overflow-y-auto rounded-lg border border-gray-200 bg-white shadow-lg">
+          <div className="absolute z-50 mt-1 w-full max-h-72 overflow-y-auto border border-zinc-800 bg-[#0d0e10] shadow-xl">
             {Array.from(filtered.entries()).map(([sector, stocks]) => (
               <div key={sector}>
-                <div className="sticky top-0 bg-gray-50 px-3 py-1.5 text-xs font-semibold text-gray-400 uppercase tracking-wide border-b border-gray-100">
+                <div className="sticky top-0 bg-[#0d0e10] px-3 py-1.5 text-xs font-semibold text-[var(--text-tertiary)] uppercase tracking-wide border-b border-zinc-800 font-mono">
                   {SECTOR_LABELS[sector]}
                 </div>
                 {stocks.map((stock) => {
@@ -131,22 +131,22 @@ export function SymbolPicker({ initialSymbols = [] }: SymbolPickerProps) {
                         isDisabled
                           ? 'opacity-40 cursor-not-allowed'
                           : isSelected
-                          ? 'bg-blue-50 text-blue-700'
-                          : 'hover:bg-gray-50 text-gray-800'
+                          ? 'bg-[var(--accent-muted)] text-[var(--accent)]'
+                          : 'hover:bg-[#1a1c1e] text-[var(--text-primary)]'
                       }`}
                     >
                       <span>
-                        <span className="font-medium">{shortLabel(stock.symbol)}</span>
-                        <span className="ml-2 text-gray-400">{stock.name}</span>
+                        <span className="font-mono font-medium">{shortLabel(stock.symbol)}</span>
+                        <span className="ml-2 text-[var(--text-secondary)]">{stock.name}</span>
                       </span>
-                      {isSelected && <span className="text-blue-500 text-xs">✓</span>}
+                      {isSelected && <span className="text-[var(--accent)] text-xs">✓</span>}
                     </button>
                   );
                 })}
               </div>
             ))}
             {filtered.size === 0 && (
-              <p className="px-4 py-3 text-sm text-gray-400">No results for &quot;{query}&quot;</p>
+              <p className="px-4 py-3 text-sm text-[var(--text-tertiary)]">No results for &quot;{query}&quot;</p>
             )}
           </div>
         )}
@@ -161,9 +161,9 @@ export function SymbolPicker({ initialSymbols = [] }: SymbolPickerProps) {
       <button
         onClick={handleCompare}
         disabled={selected.length < 2}
-        className="rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-blue-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+        className="btn btn-primary w-full justify-center mt-2"
       >
-        {selected.length < 2 ? 'Select 2+ stocks' : `Compare ${selected.length} stocks →`}
+        {selected.length < 2 ? 'SELECT 2+ STOCKS' : `COMPARE ${selected.length} STOCKS →`}
       </button>
     </div>
   );
