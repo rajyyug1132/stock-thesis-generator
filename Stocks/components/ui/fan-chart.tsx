@@ -156,7 +156,7 @@ export function FanChart({ percentiles, mean, height = 280 }: FanChartProps) {
         .datum(outerData)
         .attr('d', area)
         .attr('fill', 'var(--accent)')
-        .attr('opacity', 0.12);
+        .attr('opacity', 0.10);
 
       // Inner band (p25–p75)
       g.append('path')
@@ -178,7 +178,7 @@ export function FanChart({ percentiles, mean, height = 280 }: FanChartProps) {
         .attr('fill', 'none')
         .attr('stroke', 'var(--accent)')
         .attr('stroke-width', 1)
-        .attr('opacity', 0.5)
+        .attr('opacity', 0.4)
         .attr('stroke-dasharray', '3,3');
 
       // Median line
@@ -187,7 +187,8 @@ export function FanChart({ percentiles, mean, height = 280 }: FanChartProps) {
         .attr('d', lineGen)
         .attr('fill', 'none')
         .attr('stroke', 'var(--accent)')
-        .attr('stroke-width', 2);
+        .attr('stroke-width', 2)
+        .attr('opacity', 0.80);
 
       // Crosshair overlay
       const crosshairG = g.append('g').attr('opacity', 0).attr('pointer-events', 'none');
