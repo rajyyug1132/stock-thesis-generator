@@ -64,7 +64,7 @@ export function StockCard({ stock }: StockCardProps) {
   return (
     <Link
       href={`/stock/${sym}`}
-      className="hover-accent"
+      className="hover-accent hover:border-[var(--accent)] transition-colors duration-200"
       style={{
         display: 'block',
         textAlign: 'left',
