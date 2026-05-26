@@ -1,11 +1,12 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useRef, useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { SectionLabel } from '@/components/ui/section-label';
 import { NIFTY_50 } from '@/lib/data/nifty50';
+import { useAuth } from '@/hooks/use-auth';
 
 /* ══════════════════════════════════════════════════════════════════════════════
    LogoMark — matches Editorial Quant Design System / assets/logo-mark.svg
@@ -17,7 +18,7 @@ function LogoMark({ size = 22 }: { size?: number }) {
       <rect x="0.5" y="0.5" width="63" height="63" fill="none" stroke="var(--accent)" strokeWidth="1" />
       <text
         x="32" y="44"
-        fontFamily="'Instrument Serif', Georgia, serif"
+        fontFamily="var(--font-serif)"
         fontSize="44"
         fill="var(--text-primary)"
         textAnchor="middle"
@@ -160,22 +161,26 @@ function useNiftyLive(): NiftyLive | null {
 
 /* ── Nav config ───────────────────────────────────────────────────────────── */
 const NAV = [
-  { href: '/',        label: 'STOCKS'  },
-  { href: '/compare', label: 'COMPARE' },
+  { href: '/',           label: 'STOCKS'    },
+  { href: '/compare',    label: 'COMPARE'   },
+  { href: '/portfolio',  label: 'PORTFOLIO' },
 ] as const;
 
 /* ══════════════════════════════════════════════════════════════════════════════
    Header — sticky 56px. Framer-motion active underline. Jitter graph accent.
 ══════════════════════════════════════════════════════════════════════════════ */
 export function Header() {
-  const pathname  = usePathname();
-  const router    = useRouter();
-  const niftyLive = useNiftyLive();
-  const positive  = niftyLive ? niftyLive.change >= 0 : true;
+  const pathname     = usePathname();
+  const router       = useRouter();
+  const searchParams = useSearchParams();
+  const niftyLive    = useNiftyLive();
+  const positive     = niftyLive ? niftyLive.change >= 0 : true;
+  const { user, token } = useAuth();
 
   const [showCommandPalette, setShowCommandPalette] = useState(false);
-  const [paletteQuery, setPaletteQuery] = useState('');
-  const [selectedIndex, setSelectedIndex] = useState(0);
+  const [paletteQuery, setPaletteQuery]             = useState('');
+  const [selectedIndex, setSelectedIndex]           = useState(0);
+  const [saveStatus, setSaveStatus]                 = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
 
   function isActive(href: string) {
     if (href === '/') return pathname === '/' || pathname.startsWith('/stock');
@@ -239,12 +244,60 @@ export function Header() {
   const suggestions = useMemo(() => {
     const q = paletteQuery.toLowerCase().trim();
     if (!q) {
-      return [
-        { id: 'home', label: 'Go to Home / Stocks', shortcut: 'G H', category: 'Navigation', action: () => router.push('/') },
-        { id: 'compare', label: 'Go to Compare Screen', category: 'Navigation', action: () => router.push('/compare') },
-        { id: 'example-compare', label: 'Compare RELIANCE with HDFCBANK', category: 'Compare', action: () => router.push('/compare?symbols=RELIANCE,HDFCBANK') },
-        { id: 'example-compare-2', label: 'Compare TCS with INFY', category: 'Compare', action: () => router.push('/compare?symbols=TCS,INFY') },
+      const defaults: Array<{ id: string; label: string; shortcut?: string; category: string; action: () => void }> = [
+        { id: 'home',     label: 'Go to Home / Stocks',       shortcut: 'G H', category: 'Navigation', action: () => router.push('/') },
+        { id: 'compare',  label: 'Go to Compare Screen',       category: 'Navigation', action: () => router.push('/compare') },
+        { id: 'portfolio',label: 'My Portfolio — Saved Simulations', category: 'Navigation', action: () => router.push('/portfolio') },
+        { id: 'example-compare',   label: 'Compare RELIANCE with HDFCBANK', category: 'Compare', action: () => router.push('/compare?symbols=RELIANCE,HDFCBANK') },
+        { id: 'example-compare-2', label: 'Compare TCS with INFY',           category: 'Compare', action: () => router.push('/compare?symbols=TCS,INFY') },
       ];
+      // Surface save on compare page when symbols present
+      if (pathname === '/compare' && searchParams.get('symbols')) {
+        defaults.splice(2, 0, {
+          id: 'save-sim',
+          label: user
+            ? 'Save this simulation…  (type "save <name>")'
+            : 'Sign in to save simulations  →  /portfolio',
+          category: 'Portfolio',
+          action: () => {
+            if (!user) router.push('/portfolio');
+            else setPaletteQuery('save ');
+          },
+        });
+      }
+      return defaults;
+    }
+
+    // "save <name>" handler — must be before stock matching
+    if (q.startsWith('save ')) {
+      const name = paletteQuery.slice(5).trim();
+      const symbolsParam = searchParams.get('symbols') ?? '';
+      const weightsParam = searchParams.get('weights') ?? '';
+      const horizonParam = searchParams.get('horizon') ?? '30';
+      return [{
+        id: 'do-save',
+        label: name
+          ? `💾 Save as "${name}"`
+          : 'Type a name for this simulation…',
+        category: 'Portfolio',
+        action: async () => {
+          if (!name || !symbolsParam) return;
+          if (!user || !token) { router.push('/portfolio'); return; }
+          setSaveStatus('saving');
+          try {
+            const symbols = symbolsParam.split(',').filter(Boolean);
+            const rawWeights = weightsParam ? weightsParam.split(',').map(Number) : symbols.map(() => 1 / symbols.length);
+            const res = await fetch('/api/snapshots', {
+              method: 'POST',
+              headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` },
+              body: JSON.stringify({ name, symbols, weights: rawWeights, horizonDays: Number(horizonParam) }),
+            });
+            setSaveStatus(res.ok ? 'saved' : 'error');
+            setTimeout(() => setSaveStatus('idle'), 2500);
+          } catch { setSaveStatus('error'); setTimeout(() => setSaveStatus('idle'), 2500); }
+          setShowCommandPalette(false); setPaletteQuery('');
+        },
+      }];
     }
 
     const items: Array<{ id: string; label: string; shortcut?: string; category: string; action: () => void }> = [];
@@ -295,7 +348,7 @@ export function Header() {
     }
 
     return items;
-  }, [paletteQuery, router]);
+  }, [paletteQuery, router, pathname, searchParams, user, token, setSaveStatus]);
 
   useEffect(() => {
     setSelectedIndex(0);
@@ -633,6 +686,28 @@ export function Header() {
               </div>
             </motion.div>
           </div>
+        )}
+      </AnimatePresence>
+
+      {/* Save status toast */}
+      <AnimatePresence>
+        {saveStatus !== 'idle' && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 20 }}
+            style={{
+              position: 'fixed', bottom: 24, right: 24, zIndex: 9999,
+              background: 'var(--bg-card)',
+              border: `1px solid ${saveStatus === 'saved' ? 'var(--up)' : saveStatus === 'error' ? 'var(--down)' : 'var(--border-strong)'}`,
+              padding: '10px 16px',
+              fontFamily: 'var(--font-mono)', fontSize: 'var(--text-small)',
+              color: saveStatus === 'saved' ? 'var(--up)' : saveStatus === 'error' ? 'var(--down)' : 'var(--text-secondary)',
+              letterSpacing: '0.06em',
+            }}
+          >
+            {saveStatus === 'saving' ? '⏳ SAVING…' : saveStatus === 'saved' ? '✓ SIMULATION SAVED' : '✕ SAVE FAILED'}
+          </motion.div>
         )}
       </AnimatePresence>
     </>
