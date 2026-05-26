@@ -1,16 +1,16 @@
 import Link from 'next/link';
 import Image from 'next/image';
+import { Suspense } from 'react';
 import { MethodStrip } from '@/components/Header';
 import { SectionLabel } from '@/components/ui/section-label';
 import { Panel } from '@/components/ui/panel';
-import { NIFTY_50 } from '@/lib/data/nifty50';
-import { StockCard } from '@/components/stock-card';
+import { StockGrid } from '@/components/stock-grid';
+import { StockGridSkeleton } from '@/components/stock-grid-skeleton';
 
-const FEATURED = ['RELIANCE.NS', 'TCS.NS', 'INFY.NS', 'HDFCBANK.NS', 'TATAMOTORS.NS', 'ICICIBANK.NS'];
+// ISR: revalidate every hour
+export const revalidate = 3600;
 
 export default function Home() {
-  const featured = FEATURED.map((sym) => NIFTY_50.find((s) => s.symbol === sym)).filter(Boolean) as typeof NIFTY_50;
-
   return (
     <main className="min-h-screen" style={{ background: 'var(--bg-canvas)' }}>
 
@@ -100,11 +100,9 @@ export default function Home() {
             ALL 50 →
           </Link>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
-          {featured.map((stock) => (
-            <StockCard key={stock.symbol} stock={stock} />
-          ))}
-        </div>
+        <Suspense fallback={<StockGridSkeleton />}>
+          <StockGrid />
+        </Suspense>
       </section>
 
       {/* Portfolio simulation CTA */}
