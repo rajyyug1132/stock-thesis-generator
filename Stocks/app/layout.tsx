@@ -4,6 +4,7 @@ import './globals.css';
 import { Geist, Geist_Mono, Fraunces } from 'next/font/google';
 import { cn } from '@/lib/utils';
 import { Header } from '@/components/Header';
+import { StockStreamProvider } from '@/providers/stock-stream-provider';
 
 /* ── Fonts via next/font (zero FOUT, self-hosted at build time) ── */
 const geist = Geist({
@@ -39,10 +40,12 @@ export default function RootLayout({
   return (
     <html lang="en" className={cn(geist.variable, geistMono.variable, fraunces.variable)}>
       <body className="min-h-screen">
-        <Suspense fallback={null}>
-          <Header />
-        </Suspense>
-        {children}
+        <StockStreamProvider>
+          <Suspense fallback={null}>
+            <Header />
+          </Suspense>
+          {children}
+        </StockStreamProvider>
       </body>
     </html>
   );
