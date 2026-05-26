@@ -1,12 +1,19 @@
 'use client';
 
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useRef, useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { SectionLabel } from '@/components/ui/section-label';
 import { NIFTY_50 } from '@/lib/data/nifty50';
 import { useAuth } from '@/hooks/use-auth';
+
+// Load TickerCanvas only on the client (uses Web Worker + canvas APIs)
+const TickerCanvas = dynamic(
+  () => import('@/components/ticker-canvas').then((m) => m.TickerCanvas),
+  { ssr: false }
+);
 
 /* ══════════════════════════════════════════════════════════════════════════════
    LogoMark — matches Editorial Quant Design System / assets/logo-mark.svg
@@ -493,6 +500,9 @@ export function Header() {
           )}
         </div>
       </header>
+
+      {/* Live ticker strip — canvas rendered, worker-driven */}
+      <TickerCanvas height={28} speed={0.55} />
 
       {/* Command Palette Modal */}
       <AnimatePresence>
