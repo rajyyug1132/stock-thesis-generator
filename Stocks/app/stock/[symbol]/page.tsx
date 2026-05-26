@@ -9,6 +9,7 @@ import { AnnotatedPriceChart } from '@/components/annotated-price-chart';
 import type { PricePoint } from '@/components/price-chart';
 import { NewsList, type NewsItem } from '@/components/news-list';
 import type { Thesis, ValidationResult } from '@/lib/ai/schemas';
+import { getBaseUrl } from '@/lib/utils';
 
 interface KeyMetrics {
   currentPrice: number;
@@ -35,7 +36,8 @@ interface ThesisResponse {
 
 async function fetchThesis(symbol: string): Promise<ThesisResponse> {
   try {
-    const res = await fetch(`http://localhost:3000/api/thesis/${symbol}`, {
+    const baseUrl = getBaseUrl();
+    const res = await fetch(`${baseUrl}/api/thesis/${symbol}`, {
       cache: 'no-store',
     });
     const data = (await res.json()) as ThesisResponse;
