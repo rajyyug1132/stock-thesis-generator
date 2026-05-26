@@ -11,7 +11,7 @@ export default function AuthCallback() {
     const supabase = getSupabaseClient();
     supabase.auth.onAuthStateChange((event) => {
       if (event === 'SIGNED_IN') {
-        router.replace('/portfolio');
+        router.replace('/portfolio?restore=pending');
       }
     });
   }, [router]);

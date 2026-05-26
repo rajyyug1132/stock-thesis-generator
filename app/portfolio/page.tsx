@@ -1,11 +1,13 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback, Suspense } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/use-auth';
 import { SectionLabel } from '@/components/ui/section-label';
 import { Panel } from '@/components/ui/panel';
 import type { SimulationSnapshot } from '@/lib/db/schema';
+import { AnimatePresence, motion } from 'framer-motion';
+import { useAuthRestore } from '@/hooks/use-auth-restore';
 
 /* ── Login Gate ────────────────────────────────────────────────────────────── */
 function LoginGate() {
@@ -166,11 +168,72 @@ function SnapshotCard({ snapshot, onDelete }: { snapshot: SimulationSnapshot; on
   );
 }
 
+interface RestoreBannerProps {
+  onRestoreComplete: () => void;
+}
+
+function RestoreBanner({ onRestoreComplete }: RestoreBannerProps) {
+  const { restoreStatus } = useAuthRestore();
+
+  useEffect(() => {
+    if (restoreStatus === 'done') {
+      onRestoreComplete();
+    }
+  }, [restoreStatus, onRestoreComplete]);
+
+  return (
+    <AnimatePresence>
+      {restoreStatus === 'restoring' && (
+        <motion.div
+          initial={{ opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0 }}
+          style={{
+            padding: '0.75rem 1.5rem',
+            background: 'var(--mint-soft)',
+            borderBottom: '1px solid rgba(168,199,186,0.2)',
+            fontFamily: 'var(--font-mono)',
+            fontSize: 10,
+            letterSpacing: '0.15em',
+            color: 'var(--mint)',
+          }}
+        >
+          RESTORING SIMULATION FROM PREVIOUS SESSION...
+        </motion.div>
+      )}
+      {restoreStatus === 'done' && (
+        <motion.div
+          initial={{ opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0 }}
+          transition={{ delay: 0.2 }}
+          style={{
+            padding: '0.75rem 1.5rem',
+            background: 'var(--mint-soft)',
+            borderBottom: '1px solid rgba(168,199,186,0.2)',
+            fontFamily: 'var(--font-mono)',
+            fontSize: 10,
+            letterSpacing: '0.15em',
+            color: 'var(--mint)',
+          }}
+        >
+          ✓ SIMULATION RESTORED AND SAVED TO PORTFOLIO
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}
+
 /* ── Portfolio Page ────────────────────────────────────────────────────────── */
 export default function PortfolioPage() {
   const { user, token, loading } = useAuth();
   const [snapshots, setSnapshots] = useState<SimulationSnapshot[]>([]);
   const [fetching, setFetching]   = useState(false);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+
+  const refreshSnapshots = useCallback(() => {
+    setRefreshTrigger((prev) => prev + 1);
+  }, []);
 
   useEffect(() => {
     if (!user || !token) return;
@@ -182,7 +245,7 @@ export default function PortfolioPage() {
       .then((d) => setSnapshots(d.snapshots ?? []))
       .catch(() => {})
       .finally(() => setFetching(false));
-  }, [user, token]);
+  }, [user, token, refreshTrigger]);
 
   async function handleDelete(id: string) {
     if (!token) return;
@@ -195,6 +258,11 @@ export default function PortfolioPage() {
 
   return (
     <main className="min-h-screen" style={{ background: 'var(--bg-canvas)' }}>
+      {/* Restore banner wrapped in Suspense */}
+      <Suspense fallback={null}>
+        <RestoreBanner onRestoreComplete={refreshSnapshots} />
+      </Suspense>
+
       <div className="column" style={{ padding: '48px 32px 80px' }}>
 
         {/* Header */}
