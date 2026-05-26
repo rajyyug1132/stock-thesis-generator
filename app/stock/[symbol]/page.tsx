@@ -37,9 +37,7 @@ interface ThesisResponse {
 async function fetchThesis(symbol: string): Promise<ThesisResponse> {
   try {
     const baseUrl = getBaseUrl();
-    const res = await fetch(`${baseUrl}/api/thesis/${symbol}`, {
-      cache: 'no-store',
-    });
+    const res = await fetch(`${baseUrl}/api/thesis/${symbol}`);
     const data = (await res.json()) as ThesisResponse;
     if (!res.ok) {
       return {
@@ -47,12 +45,29 @@ async function fetchThesis(symbol: string): Promise<ThesisResponse> {
         thesis: undefined as unknown as Thesis,
         validation: undefined as unknown as ValidationResult,
         context: { keyMetrics: {} as KeyMetrics },
+        meta: { cached: false },
       };
     }
     return data;
   } catch (err) {
-    throw new Error(err instanceof Error ? err.message : 'Failed to load thesis');
+    return {
+      thesis: undefined as unknown as Thesis,
+      validation: undefined as unknown as ValidationResult,
+      context: { keyMetrics: {} as KeyMetrics },
+      meta: { cached: false },
+      error: err instanceof Error ? err.message : 'Failed to load thesis',
+    };
   }
+}
+
+// ISR: page cached at edge, revalidated hourly
+export const revalidate = 3600;
+
+// Pre-render top 6 at build time — no cold start for featured stocks
+export async function generateStaticParams() {
+  return ['RELIANCE', 'TCS', 'HDFCBANK', 'INFY', 'TATAMOTORS', 'ICICIBANK'].map(
+    (symbol) => ({ symbol })
+  );
 }
 
 const SEVERITY_VARIANT: Record<string, 'up' | 'down' | 'accent' | undefined> = {
