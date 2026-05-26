@@ -9,6 +9,11 @@ import { SectionLabel } from '@/components/ui/section-label';
 import { Panel } from '@/components/ui/panel';
 import { DataRow } from '@/components/ui/data-row';
 import { useSimulation } from '@/hooks/use-simulation';
+import { useStressSim } from '@/hooks/use-stress-sim';
+import { StressInput } from '@/components/stress/stress-input';
+import { DualFanChart } from '@/components/stress/dual-fan-chart';
+import { DualRiskMetrics } from '@/components/stress/dual-risk-metrics';
+import { ShockRationale } from '@/components/stress/shock-rationale';
 import { equalWeight, minVariance } from '@/lib/sim/portfolio';
 import type { SimInput } from '@/lib/sim/types';
 
@@ -40,6 +45,8 @@ export function PortfolioSimulator({
   const [weights, setWeights] = useState<number[]>(() => equalWeight(symbols.length));
   const [horizon, setHorizon] = useState(defaultHorizon);
   const { result, loading, error, run } = useSimulation();
+  const [currentInput, setCurrentInput] = useState<SimInput | null>(null);
+  const { shockResult, shockSpec, loading: stressLoading, error: stressError, runStress, clearStress } = useStressSim(currentInput);
 
   function handlePreset(p: PresetName) {
     setPreset(p);
@@ -68,8 +75,10 @@ export function PortfolioSimulator({
       horizonDays: horizon,
       numPaths,
     };
+    setCurrentInput(input);
+    clearStress();
     run(input);
-  }, [symbols, initialPrices, weights, dailyMeans, covariance, horizon, numPaths, run]);
+  }, [symbols, initialPrices, weights, dailyMeans, covariance, horizon, numPaths, run, clearStress]);
 
   // Auto-run on first mount
   useEffect(() => { runSim(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -187,6 +196,49 @@ export function PortfolioSimulator({
             <RiskMetricsGrid metrics={result.metrics} />
           </div>
         </div>
+      )}
+
+      {/* Stress testing */}
+      {result && (
+        <>
+          <StressInput
+            onSubmit={runStress}
+            onClear={clearStress}
+            active={!!shockSpec}
+            loading={stressLoading}
+          />
+
+          {stressError && (
+            <div
+              className="font-mono"
+              style={{ color: 'var(--rust)', fontSize: 'var(--text-small)', padding: '0.5rem 0' }}
+            >
+              ⚠ {stressError}
+            </div>
+          )}
+
+          {shockSpec && (
+            <div className="space-y-5" style={{ marginTop: '1.5rem' }}>
+              <ShockRationale spec={shockSpec} />
+
+              <div>
+                <SectionLabel>
+                  DUAL SIMULATION · BASE (MINT) vs SHOCK (RUST) · {horizon}D
+                </SectionLabel>
+                <div className="mt-3" style={{ opacity: stressLoading ? 0.5 : 1, transition: 'opacity 0.2s' }}>
+                  <DualFanChart base={result} shock={shockResult} height={240} />
+                </div>
+              </div>
+
+              <div>
+                <SectionLabel>RISK COMPARISON · BASE vs SHOCK</SectionLabel>
+                <div className="mt-3">
+                  <DualRiskMetrics base={result.metrics} shock={shockResult?.metrics ?? null} />
+                </div>
+              </div>
+            </div>
+          )}
+        </>
       )}
     </div>
   );
