@@ -39,10 +39,33 @@ interface CovResponse {
 async function fetchCompare(symbols: string[]): Promise<CompareResponse> {
   const syms = symbols.join(',');
   const baseUrl = getBaseUrl();
-  const res = await fetch(`${baseUrl}/api/compare?symbols=${syms}`, {
-    cache: 'no-store',
-  });
-  return res.json() as Promise<CompareResponse>;
+  try {
+    const res = await fetch(`${baseUrl}/api/compare?symbols=${syms}`, {
+      cache: 'no-store',
+    });
+    const contentType = res.headers.get('content-type') ?? '';
+    if (!contentType.includes('application/json')) {
+      return {
+        symbols,
+        aligned: { dates: [], closes: {} },
+        stats: {},
+        correlation: { symbols, matrix: [] },
+        fundamentals: {},
+        error: `Compare service unavailable (HTTP ${res.status})`,
+      };
+    }
+    const data = await res.json() as CompareResponse;
+    return data;
+  } catch (err) {
+    return {
+      symbols,
+      aligned: { dates: [], closes: {} },
+      stats: {},
+      correlation: { symbols, matrix: [] },
+      fundamentals: {},
+      error: err instanceof Error ? err.message : 'Failed to load compare data',
+    };
+  }
 }
 
 async function fetchCovariance(symbols: string[]): Promise<CovResponse | null> {
