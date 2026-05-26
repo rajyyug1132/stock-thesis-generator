@@ -2,7 +2,9 @@ import YahooFinanceCtor from 'yahoo-finance2';
 import { z } from 'zod';
 import type { Fundamentals } from './types';
 
-// yahoo-finance2 v3 changed API — default export is a constructor
+// yahoo-finance2 v3: default export is a CLASS, must instantiate with `new`.
+// The earlier pino-pretty crash was caused by lib/utils/logger.ts (now fixed),
+// not by this instantiation.
 const YahooFinance = new (YahooFinanceCtor as unknown as new () => {
   historical: (symbol: string, opts: object) => Promise<unknown>;
   quoteSummary: (symbol: string, opts: object) => Promise<unknown>;
