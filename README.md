@@ -1,14 +1,8 @@
-To write a README like a high-level Product Manager (especially for someone like Tharun Tilak), you need to move beyond "how to install" and focus on **The Value Prop, The Moat, and The Tech Stack.** You want to frame this as a sophisticated financial instrument, not just a student project.
-
-Here is a template you should use. Replace the placeholder brackets with your specific repo details.
-
----
-
 # Stock Thesis Generator
 
 ### *Quant-grade equity research for the Nifty 50.*
 
-**[Live Demo Link]** | **[GitHub Repository]** | **[Case Study: Reliance Industries]**
+**(https://stock-thesis-generator-mae5.vercel.app/)** | **[GitHub Repository]** | **[Case Study: Reliance Industries]**
 
 ---
 
@@ -64,19 +58,6 @@ Moving away from generic "AI Purples," the platform utilizes a high-contrast, in
 
 ---
 
-## 06. Development
-
-```bash
-# Clone the repository
-git clone https://github.com/rajyyug1132/stock-thesis-generator.git
-
-# Install dependencies
-npm install
-
-# Run the dev server
-npm run dev
-
-```
 
 ---
 
