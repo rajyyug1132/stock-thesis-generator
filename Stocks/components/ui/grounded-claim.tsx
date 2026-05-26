@@ -8,9 +8,10 @@ interface VerificationPillProps {
   verified: boolean;
   evidence: string;
   reason: string;
+  onClick?: () => void;
 }
 
-function VerificationPill({ value, verified, evidence, reason }: VerificationPillProps) {
+function VerificationPill({ value, verified, evidence, reason, onClick }: VerificationPillProps) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -18,6 +19,10 @@ function VerificationPill({ value, verified, evidence, reason }: VerificationPil
       <span
         onMouseEnter={() => setOpen(true)}
         onMouseLeave={() => setOpen(false)}
+        onClick={onClick}
+        role={onClick ? 'button' : undefined}
+        tabIndex={onClick ? 0 : undefined}
+        onKeyDown={onClick ? (e) => e.key === 'Enter' && onClick() : undefined}
         style={{
           display: 'inline-flex',
           alignItems: 'center',
@@ -31,14 +36,14 @@ function VerificationPill({ value, verified, evidence, reason }: VerificationPil
           border: `1px solid ${verified ? 'var(--up)' : 'var(--unverified)'}`,
           background: verified ? 'var(--up-soft)' : 'rgba(184, 163, 130, 0.05)',
           color: verified ? 'var(--up)' : 'var(--unverified)',
-          cursor: 'help',
+          cursor: onClick ? 'pointer' : 'help',
           textTransform: 'uppercase',
         }}
       >
         {value} · {verified ? '✓' : '⚠'}
       </span>
 
-      {open && (
+      {open && !onClick && (
         <span
           role="tooltip"
           className="absolute z-50 p-3 text-left normal-case shadow-2xl"
@@ -74,6 +79,31 @@ function VerificationPill({ value, verified, evidence, reason }: VerificationPil
           <span className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-strong" style={{ borderTopColor: 'var(--border-strong)' }} />
         </span>
       )}
+
+      {/* Drawer hint tooltip */}
+      {open && onClick && (
+        <span
+          role="tooltip"
+          style={{
+            position: 'absolute',
+            bottom: '100%',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            marginBottom: 6,
+            background: 'var(--bg-elevated)',
+            border: '1px solid var(--border-strong)',
+            padding: '4px 8px',
+            fontFamily: 'var(--font-mono)',
+            fontSize: 9,
+            color: 'var(--accent)',
+            letterSpacing: '0.06em',
+            whiteSpace: 'nowrap',
+            pointerEvents: 'none',
+          }}
+        >
+          CLICK TO INSPECT ↗
+        </span>
+      )}
     </span>
   );
 }
@@ -84,10 +114,12 @@ interface GroundedClaimProps {
   citationN: number;
   verified: boolean;
   verificationReason: string;
+  /** When provided, clicking the pill/citation opens the Evidence Drawer */
+  onOpenDrawer?: () => void;
 }
 
 function extractNumericClaim(text: string): string | null {
-  const match = text.match(/(\d+(?:\.\d+)?%|₹\d+(?:\.\d+)?(?:\s*Cr)?|\b\d+\.\d+\s*(?:x|yoy|YoY|Cr)?\b|\b\d+\s*(?:x|yoy|YoY|Cr|%)\b)/i);
+  const match = text.match(/(\d+(?:\.\d+)?%|₹\d+(?:\.\d+)?(?:\s*Cr)?|\b\d+\.\d+\s*(?:x|yoy|YoY|Cr)?\b|\b\d+\s*(?:x|yoy|YoY|Cr|%))\b/i);
   return match ? match[0] : null;
 }
 
@@ -96,6 +128,7 @@ function extractNumericClaim(text: string): string | null {
  * - Claim text (primary)
  * - "EV ·" evidence string in mono (secondary)
  * - Citation superscript (grounded/unverified based on verification)
+ * - Optional onOpenDrawer to open the full Evidence Drawer
  */
 export function GroundedClaim({
   claim,
@@ -103,6 +136,7 @@ export function GroundedClaim({
   citationN,
   verified,
   verificationReason,
+  onOpenDrawer,
 }: GroundedClaimProps) {
   const numVal = extractNumericClaim(claim) || extractNumericClaim(evidence);
 
@@ -119,12 +153,14 @@ export function GroundedClaim({
             verified={verified}
             evidence={evidence}
             reason={verificationReason}
+            onClick={onOpenDrawer}
           />
         )}
         <Citation
           n={citationN}
           tone={verified ? 'grounded' : 'unverified'}
           reason={verificationReason}
+          onClick={onOpenDrawer}
         />
       </div>
       <div
