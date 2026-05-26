@@ -7,7 +7,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "warm": "npx tsx scripts/warm-cache.ts",
+    "postbuild": "npm run warm"
   },
   "keywords": [],
   "author": "",
