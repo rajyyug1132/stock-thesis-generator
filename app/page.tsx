@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import { MethodStrip } from '@/components/Header';
 import { SectionLabel } from '@/components/ui/section-label';
 import { Panel } from '@/components/ui/panel';
@@ -19,16 +20,16 @@ export default function Home() {
         style={{ borderColor: 'var(--border-subtle)', position: 'relative', overflow: 'hidden' }}
       >
         {/* Full-bleed chart acts as a data field behind the type */}
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
+        <Image
           src="/assets/hero-bullish-chart.svg"
-          alt=""
-          aria-hidden="true"
+          alt="Nifty 50 price trend — bullish upward trajectory"
+          fill
+          priority
           style={{
-            position: 'absolute', inset: 0,
-            width: '100%', height: '100%',
-            objectFit: 'cover', objectPosition: 'center',
-            opacity: 0.4, pointerEvents: 'none',
+            objectFit: 'cover',
+            objectPosition: 'center',
+            opacity: 0.4,
+            pointerEvents: 'none',
             zIndex: 0,
           }}
         />

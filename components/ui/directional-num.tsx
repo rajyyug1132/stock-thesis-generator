@@ -33,9 +33,12 @@ export function DirectionalNum({
   return (
     <span className={`num ${className}`} style={{ color }}>
       {showTriangle && (
-        <span className="mr-1" style={{ fontSize: '0.75em' }}>
-          {triangle}
-        </span>
+        <>
+          <span className="mr-1" style={{ fontSize: '0.75em' }} aria-hidden="true">
+            {triangle}
+          </span>
+          <span className="sr-only">{positive ? 'increase' : 'decrease'}</span>
+        </>
       )}
       {showSign && sign}
       {displayValue}

@@ -218,6 +218,7 @@ export function TickerCanvas({
       />
       <canvas
         ref={canvasRef}
+        aria-label="Live NIFTY 50 stock ticker animation"
         style={{ display: 'block', width: '100%', height }}
       />
     </div>

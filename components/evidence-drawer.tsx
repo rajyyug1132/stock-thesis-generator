@@ -99,7 +99,7 @@ export function EvidenceDrawer({ source, onClose }: EvidenceDrawerProps) {
               right: 0,
               bottom: 0,
               width: 'min(480px, 95vw)',
-              background: 'var(--bg-elevated)',
+              background: 'var(--bg-card)',
               borderLeft: '1px solid var(--border-strong)',
               zIndex: 10001,
               display: 'flex',
@@ -117,7 +117,7 @@ export function EvidenceDrawer({ source, onClose }: EvidenceDrawerProps) {
                 borderBottom: '1px solid var(--border-subtle)',
                 position: 'sticky',
                 top: 0,
-                background: 'var(--bg-elevated)',
+                background: 'var(--bg-card)',
                 zIndex: 1,
               }}
             >

@@ -11,7 +11,7 @@ interface PanelProps {
 export function Panel({ label, children, className = '', padded = true }: PanelProps) {
   return (
     <div
-      className={`relative border bg-elevated ${className}`}
+      className={`relative border bg-card ${className}`}
       style={{ borderColor: 'var(--border-subtle)' }}
     >
       {label && (
