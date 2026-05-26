@@ -8,6 +8,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { SectionLabel } from '@/components/ui/section-label';
 import { NIFTY_50 } from '@/lib/data/nifty50';
 import { useAuth } from '@/hooks/use-auth';
+import { useStockStream } from '@/providers/stock-stream-provider';
+import { BioPulseOverlay } from '@/components/bionic-pulse-overlay';
 
 // Load TickerCanvas only on the client (uses Web Worker + canvas APIs)
 const TickerCanvas = dynamic(
@@ -43,7 +45,7 @@ function LogoMark({ size = 22 }: { size?: number }) {
    Uses framer-motion to animate a polyline path that "breathes" like a live feed.
    "Big Graph" jitter logic: random small perturbations on a rising trend.
 ══════════════════════════════════════════════════════════════════════════════ */
-function useJitterPoints(count = 32, width = 200, height = 40) {
+function useJitterPoints(count = 32, width = 200, height = 40, amplitude = 1.0) {
   const [points, setPoints] = useState<string>('');
   const baseRef = useRef<number[]>([]);
 
@@ -54,11 +56,20 @@ function useJitterPoints(count = 32, width = 200, height = 40) {
       return height - 8 - trend;
     });
     baseRef.current = base;
+  }, [count, height]);
+
+  useEffect(() => {
+    if (baseRef.current.length === 0) return;
+
+    // amplitude 1.0 = normal ±4px, amplitude 3.5 = ±14px
+    const deviation = 4 * Math.min(amplitude, 3.5);
+    // Higher amplitude → faster tick rate for visible spike
+    const tickMs = amplitude > 1.5 ? 300 : 800;
 
     function tick() {
       const step = width / (count - 1);
       const jittered = baseRef.current.map((y, i) => {
-        const jitter = (Math.random() - 0.48) * 4; // slight upward bias
+        const jitter = (Math.random() - 0.48) * deviation; // slight upward bias
         const ny = Math.max(4, Math.min(height - 4, y + jitter));
         baseRef.current[i] = ny;
         return `${(i * step).toFixed(1)},${ny.toFixed(1)}`;
@@ -66,24 +77,26 @@ function useJitterPoints(count = 32, width = 200, height = 40) {
       setPoints(jittered.join(' '));
     }
 
-    tick(); // initial render
-    const id = setInterval(tick, 800);
+    tick();
+    const id = setInterval(tick, tickMs);
     return () => clearInterval(id);
-  }, [count, width, height]);
+  }, [count, width, height, amplitude]);
 
   return points;
 }
 
-function JitterGraph() {
+function JitterGraph({ amplitude = 1.0 }: { amplitude?: number }) {
   const W = 200, H = 40;
-  const points = useJitterPoints(32, W, H);
+  const points = useJitterPoints(32, W, H, amplitude);
+  // Slightly increase opacity on spike so the visual change is obvious
+  const opacity = 0.18 + Math.min((amplitude - 1) * 0.08, 0.35);
 
   return (
     <svg
       width={W} height={H}
       viewBox={`0 0 ${W} ${H}`}
       preserveAspectRatio="none"
-      style={{ position: 'absolute', right: 0, top: 0, opacity: 0.25, pointerEvents: 'none' }}
+      style={{ position: 'absolute', right: 0, top: 0, opacity, pointerEvents: 'none' }}
       aria-hidden="true"
     >
       <motion.polyline
@@ -92,7 +105,7 @@ function JitterGraph() {
         stroke="var(--accent)"
         strokeWidth="1.5"
         animate={{ points }}
-        transition={{ duration: 0.6, ease: 'easeInOut' }}
+        transition={{ duration: amplitude > 1.5 ? 0.2 : 0.6, ease: 'easeInOut' }}
       />
     </svg>
   );
@@ -183,6 +196,7 @@ export function Header() {
   const niftyLive    = useNiftyLive();
   const positive     = niftyLive ? niftyLive.change >= 0 : true;
   const { user, token } = useAuth();
+  const { latestAnomaly, jitterAmplitude } = useStockStream();
 
   const [showCommandPalette, setShowCommandPalette] = useState(false);
   const [paletteQuery, setPaletteQuery]             = useState('');
@@ -380,6 +394,9 @@ export function Header() {
 
   return (
     <>
+      {/* Fullscreen radial ping on anomaly — SSR-safe portal */}
+      <BioPulseOverlay anomaly={latestAnomaly} />
+
       <header
         style={{
           display: 'flex',
@@ -394,6 +411,29 @@ export function Header() {
           zIndex: 10,
         }}
       >
+        {/* Anomaly glow line at bottom of header — overlay div, avoids borderColor animation issues */}
+        <AnimatePresence>
+          {latestAnomaly && (
+            <motion.div
+              key={latestAnomaly.id}
+              initial={{ opacity: 0, scaleX: 0 }}
+              animate={{ opacity: 1, scaleX: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.3 }}
+              style={{
+                position: 'absolute',
+                bottom: 0,
+                left: 0,
+                right: 0,
+                height: 1,
+                background: latestAnomaly.type === 'spike_up' ? 'var(--mint)' : 'var(--rust)',
+                transformOrigin: 'center',
+                pointerEvents: 'none',
+                zIndex: 11,
+              }}
+            />
+          )}
+        </AnimatePresence>
         {/* Logo */}
         <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 12, textDecoration: 'none' }}>
           <LogoMark size={24} />
@@ -471,7 +511,7 @@ export function Header() {
             overflow: 'hidden',
           }}
         >
-          <JitterGraph />
+          <JitterGraph amplitude={jitterAmplitude} />
           <span style={{ letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text-tertiary)', position: 'relative' }}>
             NIFTY
           </span>
