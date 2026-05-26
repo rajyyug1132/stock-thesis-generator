@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { SimInput, SimResult } from '@/lib/sim/types';
+import { savePending, autoName } from '@/lib/persistence/pending-sim';
+import { useAuth } from '@/hooks/use-auth';
 
 const DEBOUNCE_MS = 80;
 
@@ -20,16 +22,20 @@ export interface UseSimulation {
   loading: boolean;
   error: string | null;
   run: (input: SimInput) => void;
+  input: SimInput | null;
 }
 
 export function useSimulation(): UseSimulation {
+  const { user } = useAuth();
   const [result, setResult] = useState<SimResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [currentInput, setCurrentInput] = useState<SimInput | null>(null);
 
   const workerRef = useRef<Worker | null>(null);
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingInput = useRef<SimInput | null>(null);
+  const lastRunInput = useRef<SimInput | null>(null);
   const mountedRef = useRef(true);
 
   // Cleanup on unmount
@@ -55,6 +61,18 @@ export function useSimulation(): UseSimulation {
       if (e.data.ok) {
         setResult(e.data.result);
         setError(null);
+
+        if (!user && e.data.result && lastRunInput.current) {
+          savePending({
+            symbols: lastRunInput.current.symbols,
+            weights: lastRunInput.current.weights,
+            horizonDays: lastRunInput.current.horizonDays,
+            numPaths: lastRunInput.current.numPaths,
+            computedMetrics: e.data.result.metrics,
+            name: autoName(lastRunInput.current.symbols),
+            savedAt: new Date().toISOString(),
+          });
+        }
       } else {
         setError(e.data.error);
       }
@@ -66,7 +84,7 @@ export function useSimulation(): UseSimulation {
       setLoading(false);
     });
     return w;
-  }, []);
+  }, [user]);
 
   const fire = useCallback(() => {
     const input = pendingInput.current;
@@ -87,6 +105,8 @@ export function useSimulation(): UseSimulation {
 
   const run = useCallback(
     (input: SimInput) => {
+      setCurrentInput(input);
+      lastRunInput.current = input;
       pendingInput.current = input;
       if (debounceTimer.current) clearTimeout(debounceTimer.current);
       debounceTimer.current = setTimeout(fire, DEBOUNCE_MS);
@@ -94,5 +114,5 @@ export function useSimulation(): UseSimulation {
     [fire]
   );
 
-  return { result, loading, error, run };
+  return { result, loading, error, run, input: currentInput };
 }
