@@ -7,9 +7,11 @@ interface CitationProps {
   reason: string;
   /** color override: 'grounded' (green) | 'unverified' (amber, default) */
   tone?: 'grounded' | 'unverified';
+  /** When provided, clicking opens the Evidence Drawer instead of tooltip */
+  onClick?: () => void;
 }
 
-export function Citation({ n, reason, tone = 'unverified' }: CitationProps) {
+export function Citation({ n, reason, tone = 'unverified', onClick }: CitationProps) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLSpanElement>(null);
 
@@ -28,11 +30,15 @@ export function Citation({ n, reason, tone = 'unverified' }: CitationProps) {
   return (
     <span ref={ref} className="relative inline-block">
       <sup
-        className="font-serif italic ml-0.5 cursor-help select-none"
-        style={{ color, fontSize: '0.75em' }}
-        onMouseEnter={() => setOpen(true)}
-        onMouseLeave={() => setOpen(false)}
-        onClick={(e) => { e.stopPropagation(); setOpen((v) => !v); }}
+        className="font-serif italic ml-0.5 select-none"
+        style={{ color, fontSize: '0.75em', cursor: onClick ? 'pointer' : 'help' }}
+        onMouseEnter={() => !onClick && setOpen(true)}
+        onMouseLeave={() => !onClick && setOpen(false)}
+        onClick={(e) => {
+          e.stopPropagation();
+          if (onClick) { onClick(); return; }
+          setOpen((v) => !v);
+        }}
       >
         <span style={{ color: 'var(--text-tertiary)' }}>·</span>
         {n}

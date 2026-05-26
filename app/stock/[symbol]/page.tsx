@@ -4,7 +4,7 @@ import { Pill } from '@/components/ui/pill';
 import { DataRow } from '@/components/ui/data-row';
 import { DirectionalNum } from '@/components/ui/directional-num';
 import { ThesisAbstract } from '@/components/ui/thesis-abstract';
-import { GroundedClaim } from '@/components/ui/grounded-claim';
+import { StockPageClient } from './stock-page-client';
 import { AnnotatedPriceChart } from '@/components/annotated-price-chart';
 import type { PricePoint } from '@/components/price-chart';
 import { NewsList, type NewsItem } from '@/components/news-list';
@@ -100,15 +100,7 @@ export default async function StockPage({
   const { thesis, validation, context: { keyMetrics, prices = [], news = [] }, meta } = data;
   const score = validation.overallScore;
 
-  // Map validation claims by location prefix for lookup
-  const claimsByLocation = new Map(
-    validation.claims.map((c) => [c.location, c])
-  );
 
-  function getValidation(prefix: string, idx: number) {
-    const key = `${prefix}[${idx}]`;
-    return claimsByLocation.get(key) ?? null;
-  }
 
   return (
     <main className="min-h-screen" style={{ background: 'var(--bg-canvas)' }}>
@@ -209,58 +201,12 @@ export default async function StockPage({
           />
         </section>
 
-        {/* Bull / Bear */}
-        <section className="grid md:grid-cols-2 gap-6">
-          {/* Bull case */}
-          <Panel label={`BULL CASE · ${thesis.bullCase.points.length} POINTS`}>
-            <p
-              className="font-serif italic mb-4"
-              style={{ fontSize: 'var(--text-body)', color: 'var(--up)', lineHeight: 1.5 }}
-            >
-              {thesis.bullCase.headline}
-            </p>
-            <ul className="space-y-4">
-              {thesis.bullCase.points.map((pt, i) => {
-                const v = getValidation('bullCase.points', i);
-                return (
-                  <GroundedClaim
-                    key={i}
-                    citationN={i + 1}
-                    claim={pt.claim}
-                    evidence={pt.evidence}
-                    verified={v?.verified ?? false}
-                    verificationReason={v?.reason ?? 'Not validated'}
-                  />
-                );
-              })}
-            </ul>
-          </Panel>
-
-          {/* Bear case */}
-          <Panel label={`BEAR CASE · ${thesis.bearCase.points.length} POINTS`}>
-            <p
-              className="font-serif italic mb-4"
-              style={{ fontSize: 'var(--text-body)', color: 'var(--down)', lineHeight: 1.5 }}
-            >
-              {thesis.bearCase.headline}
-            </p>
-            <ul className="space-y-4">
-              {thesis.bearCase.points.map((pt, i) => {
-                const v = getValidation('bearCase.points', i);
-                return (
-                  <GroundedClaim
-                    key={i}
-                    citationN={thesis.bullCase.points.length + i + 1}
-                    claim={pt.claim}
-                    evidence={pt.evidence}
-                    verified={v?.verified ?? false}
-                    verificationReason={v?.reason ?? 'Not validated'}
-                  />
-                );
-              })}
-            </ul>
-          </Panel>
-        </section>
+        {/* Bull / Bear — client island with Evidence Drawer */}
+        <StockPageClient
+          thesis={thesis}
+          validation={validation}
+          bullCount={thesis.bullCase.points.length}
+        />
 
         {/* Risks */}
         {thesis.risks.length > 0 && (
