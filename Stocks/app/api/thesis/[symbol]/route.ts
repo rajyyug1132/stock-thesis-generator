@@ -71,7 +71,7 @@ export async function GET(
     const latency = Date.now() - startTime;
     logger.info({ symbol, cached: result.cached, latency }, 'Thesis served');
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       ...result.data,
       meta: {
         fetchedAt: new Date().toISOString(),
@@ -79,6 +79,14 @@ export async function GET(
         stale: result.stale,
       },
     });
+
+    response.headers.set(
+      'Cache-Control',
+      's-maxage=3600, stale-while-revalidate=1800'
+    );
+    response.headers.set('Vary', 'Accept-Encoding');
+
+    return response;
   } catch (err) {
     logger.error(
       { symbol, error: err instanceof Error ? err.message : String(err) },
@@ -90,3 +98,5 @@ export async function GET(
     );
   }
 }
+
+export const revalidate = 3600;
