@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap');
+/* Fonts loaded via next/font/google in app/layout.tsx — no runtime @import needed */
 
 @tailwind base;
 @tailwind components;
@@ -50,7 +50,8 @@
   --error:       var(--down);
 
   /* ── Type families ─────────────────────────────────────────────────────── */
-  --font-serif: 'Instrument Serif', 'Georgia', 'Times New Roman', serif;
+  /* Fraunces: optical-size variable serif (WONK/SOFT/opsz axes) loaded via next/font */
+  --font-serif: 'Fraunces', 'Georgia', 'Times New Roman', serif;
   --font-sans:  'Geist', 'Inter', system-ui, -apple-system, sans-serif;
   --font-mono:  'Geist Mono', 'JetBrains Mono', 'SF Mono', 'Menlo', monospace;
 
@@ -96,6 +97,17 @@
 
   /* No radii in this system — every corner is sharp */
   --radius-none: 0;
+
+  /* Mint + Bone palette override */
+  --bone:        #f0ebe0;
+  --bone-dim:    rgba(240,235,224,0.52);
+  --bone-faint:  rgba(240,235,224,0.14);
+  --bone-grid:   rgba(240,235,224,0.055);
+  --mint:        #6db89e;
+  --mint-muted:  rgba(109,184,158,0.08);
+  --mint-strong: #8ecfb8;
+  --rust:        #c47d68;
+  --rust-muted:  rgba(196,125,104,0.1);
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
@@ -121,28 +133,33 @@ body {
 ───────────────────────────────────────────────────────────────────────────── */
 .display, h1.display {
   font-family: var(--font-serif);
-  font-weight: 400;
+  font-weight: 300;
   font-size: var(--text-display);
-  line-height: 0.95;
+  line-height: 0.93;
   letter-spacing: var(--tracking-tight);
   color: var(--text-primary);
+  /* Fraunces optical-size: large display → tighter, more refined letterforms */
+  font-variation-settings: 'opsz' 144, 'SOFT' 50, 'WONK' 0;
+  font-style: italic;
 }
 
 h1, .h1 {
   font-family: var(--font-serif);
-  font-weight: 400;
+  font-weight: 300;
   font-size: var(--text-h1);
   line-height: 1.05;
   letter-spacing: var(--tracking-tight);
   color: var(--text-primary);
+  font-variation-settings: 'opsz' 72, 'SOFT' 40, 'WONK' 0;
 }
 
 h2, .h2 {
   font-family: var(--font-serif);
-  font-weight: 400;
+  font-weight: 300;
   font-size: var(--text-h2);
   line-height: 1.15;
   color: var(--text-primary);
+  font-variation-settings: 'opsz' 48, 'SOFT' 30, 'WONK' 0;
 }
 
 h3, .h3 {
@@ -162,6 +179,8 @@ blockquote, .abstract {
   font-size: 1.15rem;
   line-height: 1.75;
   color: var(--text-primary);
+  /* Fraunces small-size: more rounded, expressive letterforms for body quotes */
+  font-variation-settings: 'opsz' 18, 'SOFT' 100, 'WONK' 1;
 }
 
 .font-serif { font-family: var(--font-serif); font-weight: 400; }
