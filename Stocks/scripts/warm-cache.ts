@@ -23,7 +23,8 @@ async function warm() {
   if (failed.length > 0) {
     console.error(`\n${failed.length} stocks failed to warm:`);
     failed.forEach((r) => r.status === 'rejected' && console.error(`  ✗ ${r.reason}`));
-    process.exit(1);
+    console.warn('\n[warm] Cache warming failed or was skipped. This is normal during the build container phase if the server is not yet running.');
+    process.exit(0);
   }
 
   console.log(`\nCache warm complete. ${TOP_6.length} stocks ready.`);
