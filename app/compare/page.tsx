@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 import { SectionLabel } from '@/components/ui/section-label';
 import { Panel } from '@/components/ui/panel';
 import { Pill } from '@/components/ui/pill';
+import { getBaseUrl } from '@/lib/utils';
 import { SymbolPicker } from '@/components/symbol-picker';
 import { ComparisonTable } from '@/components/comparison-table';
 import { CorrelationHeatmap } from '@/components/correlation-heatmap';
@@ -37,7 +38,8 @@ interface CovResponse {
 
 async function fetchCompare(symbols: string[]): Promise<CompareResponse> {
   const syms = symbols.join(',');
-  const res = await fetch(`http://localhost:3000/api/compare?symbols=${syms}`, {
+  const baseUrl = getBaseUrl();
+  const res = await fetch(`${baseUrl}/api/compare?symbols=${syms}`, {
     cache: 'no-store',
   });
   return res.json() as Promise<CompareResponse>;
@@ -46,7 +48,8 @@ async function fetchCompare(symbols: string[]): Promise<CompareResponse> {
 async function fetchCovariance(symbols: string[]): Promise<CovResponse | null> {
   try {
     const syms = symbols.join(',');
-    const res = await fetch(`http://localhost:3000/api/covariance?symbols=${syms}`, {
+    const baseUrl = getBaseUrl();
+    const res = await fetch(`${baseUrl}/api/covariance?symbols=${syms}`, {
       cache: 'no-store',
     });
     if (!res.ok) return null;
