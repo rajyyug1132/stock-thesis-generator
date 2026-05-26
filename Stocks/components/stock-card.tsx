@@ -28,8 +28,9 @@ function NewsSentimentTooltip({ headline }: { headline: string }) {
         onMouseLeave={() => setOpen(false)}
         onFocus={() => setOpen(true)}
         onBlur={() => setOpen(false)}
+        aria-label="News sentiment warning detail"
         style={{
-          color: '#d4a574',
+          color: 'var(--rust)',
           fontSize: '11px',
           background: 'none',
           border: 'none',
@@ -43,7 +44,7 @@ function NewsSentimentTooltip({ headline }: { headline: string }) {
           lineHeight: '12px',
         }}
       >
-        ⓘ
+        <span aria-hidden="true">ⓘ</span>
       </button>
       {open && (
         <span
@@ -63,7 +64,7 @@ function NewsSentimentTooltip({ headline }: { headline: string }) {
             borderRadius: '0px',
           }}
         >
-          <div style={{ fontFamily: 'var(--font-mono)', fontSize: '8px', color: '#d4a574', marginBottom: '3px', fontWeight: 600, letterSpacing: '0.05em' }}>
+          <div style={{ fontFamily: 'var(--font-mono)', fontSize: '8px', color: 'var(--rust)', marginBottom: '3px', fontWeight: 600, letterSpacing: '0.05em' }}>
             WARNING: SENTIMENT DROP LINK
           </div>
           {headline}
@@ -124,7 +125,7 @@ export function StockCard({ stock }: StockCardProps) {
     annualReturn === null
       ? 'var(--text-tertiary)'
       : hasDropEvent
-      ? '#d4a574' // Warning Rust
+      ? 'var(--rust)' // Warning Rust
       : up
       ? 'var(--up)'
       : 'var(--down)';
@@ -136,7 +137,7 @@ export function StockCard({ stock }: StockCardProps) {
       style={{
         display: 'block',
         textAlign: 'left',
-        background: 'var(--bg-elevated)',
+        background: 'var(--bg-card)',
         border: '1px solid var(--border-subtle)',
         padding: 20,
         textDecoration: 'none',
@@ -192,7 +193,7 @@ export function StockCard({ stock }: StockCardProps) {
       {/* Sparkline — pure 1.5px mint polyline, no fill */}
       <div style={{ height: 32, margin: '12px 0' }}>
         {closes.length > 1 ? (
-          <Sparkline data={closes} width={240} height={32} color={hasDropEvent ? '#d4a574' : 'var(--up)'} />
+          <Sparkline data={closes} width={240} height={32} color={hasDropEvent ? 'var(--rust)' : 'var(--up)'} />
         ) : (
           <div style={{ width: '100%', height: 32, background: 'var(--bg-input)' }} />
         )}

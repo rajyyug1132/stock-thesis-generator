@@ -211,7 +211,9 @@ export function AnnotatedPriceChart({
         .append('g')
         .attr('transform', `translate(${cx},${cy})`)
         .attr('class', 'ann-pin')
-        .style('cursor', 'pointer');
+        .style('cursor', 'pointer')
+        .attr('role', 'button')
+        .attr('aria-label', `Annotation pin: ${ann.label} - ${ann.catalyst}`);
 
       // Pulse ring
       pinG
@@ -343,11 +345,23 @@ export function AnnotatedPriceChart({
             pointerEvents: 'none',
           }}
         >
-          <span style={{ color: 'var(--up)' }}>● +EVENT</span>
-          <span style={{ color: 'var(--down)' }}>● −EVENT</span>
+          <span style={{ color: 'var(--up)' }}><span aria-hidden="true">● </span>+EVENT</span>
+          <span style={{ color: 'var(--down)' }}><span aria-hidden="true">● </span>−EVENT</span>
           <span>CLICK TO INSPECT</span>
         </div>
       )}
+
+      {/* Screen-reader-only annotations list */}
+      <div className="sr-only">
+        <h4>Chart Annotations</h4>
+        <ul>
+          {annotations.map((ann, idx) => (
+            <li key={idx}>
+              {ann.label} ({ann.timestamp}): {ann.catalyst} (Sentiment: {ann.sentiment})
+            </li>
+          ))}
+        </ul>
+      </div>
     </div>
   );
 }

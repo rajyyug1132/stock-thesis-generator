@@ -388,7 +388,7 @@ export function Header() {
           height: 56,
           borderBottom: '1px solid var(--border-subtle)',
           padding: '0 32px',
-          background: 'var(--bg-canvas)',
+          background: 'var(--bg-elevated)',
           position: 'sticky',
           top: 0,
           zIndex: 10,
@@ -492,7 +492,9 @@ export function Header() {
                 className="num"
                 style={{ color: positive ? 'var(--up)' : 'var(--down)', position: 'relative' }}
               >
-                {positive ? '▲' : '▼'}{Math.abs(niftyLive.change * 100).toFixed(2)}%
+                <span aria-hidden="true">{positive ? '▲' : '▼'}</span>
+                <span className="sr-only">{positive ? 'increase of' : 'decrease of'}</span>
+                {Math.abs(niftyLive.change * 100).toFixed(2)}%
               </motion.span>
             </>
           ) : (
