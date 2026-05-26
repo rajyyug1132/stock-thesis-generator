@@ -5,7 +5,8 @@ import { DataRow } from '@/components/ui/data-row';
 import { DirectionalNum } from '@/components/ui/directional-num';
 import { ThesisAbstract } from '@/components/ui/thesis-abstract';
 import { GroundedClaim } from '@/components/ui/grounded-claim';
-import { PriceChart, type PricePoint } from '@/components/price-chart';
+import { AnnotatedPriceChart } from '@/components/annotated-price-chart';
+import type { PricePoint } from '@/components/price-chart';
 import { NewsList, type NewsItem } from '@/components/news-list';
 import type { Thesis, ValidationResult } from '@/lib/ai/schemas';
 
@@ -193,7 +194,7 @@ export default async function StockPage({
                 background: 'var(--bg-card)',
               }}
             >
-              <PriceChart data={prices} height={220} />
+              <AnnotatedPriceChart data={prices} symbol={thesis.symbol.replace('.NS', '')} height={260} />
             </div>
           </section>
         )}
