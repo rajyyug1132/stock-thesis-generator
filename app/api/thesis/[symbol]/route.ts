@@ -91,13 +91,16 @@ export async function GET(
     const msg = err instanceof Error ? err.message : String(err);
     logger.error({ symbol, error: msg }, 'Thesis error');
 
-    const isQuota = msg.includes('RESOURCE_EXHAUSTED') || msg.includes('quota') || msg.includes('429');
+    const isGeminiQuota = (msg.includes('RESOURCE_EXHAUSTED') || msg.includes('quota')) && !msg.includes('Groq');
+    const isRateLimit = msg.includes('429') || msg.includes('rate limit') || msg.includes('rate_limit');
     const isBalance = msg.includes('Insufficient Balance') || msg.includes('All AI providers unavailable');
-    const userMessage = isQuota
+    const userMessage = isGeminiQuota
       ? 'AI quota exhausted — all Gemini models at daily limit. Resets at midnight PT.'
+      : isRateLimit
+      ? 'AI rate limit hit — retry in 60 seconds.'
       : isBalance
       ? 'All AI providers unavailable. Add GROQ_API_KEY (free at console.groq.com) or top up DeepSeek.'
-      : `Failed to generate thesis: ${msg.slice(0, 120)}`;
+      : `Failed to generate thesis: ${msg.slice(0, 200)}`;
 
     return NextResponse.json({ error: userMessage }, { status: 502 });
   }
