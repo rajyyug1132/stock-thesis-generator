@@ -8,6 +8,13 @@
       "when": 1779856786206,
       "tag": "0000_reflective_hellcat",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1779856991848,
+      "tag": "0001_lying_cassandra_nova",
+      "breakpoints": true
     }
   ]
 }

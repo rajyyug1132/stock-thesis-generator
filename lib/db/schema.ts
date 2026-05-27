@@ -44,3 +44,21 @@ export const priceAlerts = pgTable('price_alerts', {
 
 export type PriceAlert = typeof priceAlerts.$inferSelect;
 export type NewPriceAlert = typeof priceAlerts.$inferInsert;
+
+/* ── api_keys ───────────────────────────────────────────────────────────────── */
+export const apiKeyTierEnum = pgEnum('api_key_tier', ['free', 'pro']);
+
+export const apiKeys = pgTable('api_keys', {
+  id:         uuid('id').defaultRandom().primaryKey(),
+  userId:     text('user_id').notNull(),
+  keyHash:    text('key_hash').notNull().unique(),    // SHA-256 of raw key — never store plain
+  keyPrefix:  text('key_prefix').notNull(),           // first 10 chars for display
+  name:       text('name').notNull(),
+  tier:       apiKeyTierEnum('tier').default('free').notNull(),
+  revoked:    boolean('revoked').default(false).notNull(),
+  lastUsedAt: timestamp('last_used_at', { withTimezone: true }),
+  createdAt:  timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+});
+
+export type ApiKey = typeof apiKeys.$inferSelect;
+export type NewApiKey = typeof apiKeys.$inferInsert;
