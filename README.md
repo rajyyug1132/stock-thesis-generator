@@ -18,9 +18,10 @@ Retail and institutional investors alike face a deluge of qualitative noise. Gen
 ## 2. Core Capabilities & Feature Roadmap
 
 ### 📊 Two-Pass Grounded Thesis Generator
-- **Generation Pass**: Gemini 1.5 Pro generates structured JSON content covering thesis summaries, bull cases, bear cases, risks, and catalysts.
-- **Verification Pass**: Gemini 1.5 Flash isolates every numerical or statistical claim and verifies it against live stock statistics.
+- **Generation Pass**: Gemini 2.5 Pro generates structured JSON content covering thesis summaries, bull cases, bear cases, risks, and catalysts.
+- **Verification Pass**: Gemini 2.5 Flash isolates every numerical or statistical claim and verifies it against live stock statistics.
 - **Visual Validation**: Claims are labeled with color-coded pills (Mint green for verified, Warm Sand for unverified).
+- **AI Cascade**: Gemini 2.5 Pro → Gemini 2.5 Flash → Gemini 2.0 Flash → DeepSeek V3 → Groq Llama 3.3 70B (automatic fallback on quota exhaustion).
 
 ### 🔍 Interactive Evidence Drawer & D3 Annotations
 - **Slide-in Evidence Portal**: Clicking a citation badge or verification pill launches a side panel displaying the factual verification reason, primary news links, and raw JSON data snapshots.
@@ -44,8 +45,8 @@ graph TD
     Client[Browser Client] -->|1. Request Thesis| App[Next.js App Router]
     App -->|2. Query cache| Redis[Upstash Redis Cache]
     App -->|3. Fetch live ticks| YF[Yahoo Finance API]
-    App -->|4. Generate JSON| GeminiPro[Gemini 1.5 Pro]
-    App -->|5. Verify claims| GeminiFlash[Gemini 1.5 Flash]
+    App -->|4. Generate JSON| GeminiPro[Gemini 2.5 Pro → DeepSeek → Groq]
+    App -->|5. Verify claims| GeminiFlash[Gemini 2.5 Flash]
     App -->|6. Store snapshot| DB[Supabase Postgres + Drizzle]
     Client -->|GBM simulations| Worker[Web Worker: ticker.worker.ts]
 ```
@@ -61,7 +62,9 @@ graph TD
 - **Hosting & Serverless**: Vercel Serverless Functions.
 - **Database**: Supabase PostgreSQL with Drizzle ORM.
 - **Caching**: Upstash Redis (falling back to memory when environment vars are absent).
-- **AI Models**: Google Gemini SDK (`@google/genai`).
+- **AI Models**: Google Gemini SDK (`@google/genai`), DeepSeek V3, Groq Llama 3.3 70B (free fallbacks).
+- **Notifications**: Price alerts (browser push), watchlist, personalised news digest.
+- **Developer API**: `/api/v2/` with API key auth, per-key rate limiting, consistent JSON envelope.
 
 ---
 
@@ -92,8 +95,10 @@ graph TD
    DATABASE_URL="postgresql://..."
    DIRECT_URL="postgresql://..."
 
-   # AI Fact-Checking & Thesis Engine
+   # AI Thesis Engine (cascade: Gemini → DeepSeek → Groq)
    GEMINI_API_KEY="AIzaSy..."
+   GROQ_API_KEY="gsk_..."       # Free at console.groq.com — recommended
+   DEEPSEEK_API_KEY="sk-..."    # Optional paid fallback
 
    # Supabase Client Credentials
    NEXT_PUBLIC_SUPABASE_URL="https://..."
