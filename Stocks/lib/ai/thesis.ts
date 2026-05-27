@@ -1,4 +1,4 @@
-import { getAI, geminiAvailable, proModel, flashModel } from './gemini';
+import { getAI, geminiAvailable, proModel, flashModel, flash2Model } from './gemini';
 import { deepseekGenerate, deepseekAvailable, isGeminiQuotaError } from './deepseek';
 import { ThesisSchema, thesisResponseSchema, type Thesis } from './schemas';
 import type { Context } from './context';
@@ -112,14 +112,27 @@ export async function generateThesis(context: Context): Promise<Thesis & { token
       const msg = err instanceof Error ? err.message : String(err);
 
       if (isGeminiQuotaError(err)) {
-        // 2. Gemini quota hit — try Flash
+        // 2. Gemini 2.5 Pro quota hit — try Flash 2.5
         try {
           return await attemptGemini(context, '', flashModel);
         } catch (flashErr) {
           if (isGeminiQuotaError(flashErr)) {
-            // 3. All Gemini quota exhausted — fall through to DeepSeek
+            // 3. Flash 2.5 also exhausted — try Gemini 2.0 Flash (separate quota pool)
+            try {
+              return await attemptGemini(context, '', flash2Model);
+            } catch (flash2Err) {
+              if (!isGeminiQuotaError(flash2Err)) {
+                // 2.0 Flash failed for non-quota reason — retry stricter
+                try {
+                  return await attemptGemini(context, RETRY_SUFFIX, flash2Model);
+                } catch {
+                  // Fall through to DeepSeek
+                }
+              }
+              // All Gemini quota exhausted — fall through to DeepSeek
+            }
           } else {
-            // Flash failed for non-quota reason — retry with stricter prompt
+            // Flash 2.5 failed for non-quota reason — retry with stricter prompt
             try {
               return await attemptGemini(context, RETRY_SUFFIX, flashModel);
             } catch {
