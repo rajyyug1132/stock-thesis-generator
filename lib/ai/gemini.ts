@@ -30,3 +30,5 @@ export const ai = new Proxy({} as GoogleGenAI, {
 
 export const proModel = 'gemini-2.5-pro';
 export const flashModel = 'gemini-2.5-flash';
+/** Gemini 2.0 Flash — separate quota pool, used as tertiary fallback */
+export const flash2Model = 'gemini-2.0-flash';

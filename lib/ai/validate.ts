@@ -1,4 +1,4 @@
-import { getAI, geminiAvailable, flashModel } from './gemini';
+import { getAI, geminiAvailable, flashModel, flash2Model } from './gemini';
 import { deepseekGenerate, deepseekAvailable, isGeminiQuotaError } from './deepseek';
 import {
   ValidationResultSchema,
@@ -98,7 +98,20 @@ export async function validateThesis(
       return await validateWithGemini(thesis, context);
     } catch (err) {
       if (!isGeminiQuotaError(err)) throw err;
-      // Quota exhausted — fall through to DeepSeek
+      // Flash 2.5 quota exhausted — try Gemini 2.0 Flash
+      try {
+        const ai = getAI();
+        const { userPrompt } = buildPrompt(thesis, context);
+        const response = await ai.models.generateContent({
+          model: flash2Model,
+          config: { temperature: 0, responseMimeType: 'application/json', responseSchema: validationResponseSchema, systemInstruction: SYSTEM_PROMPT },
+          contents: [{ role: 'user', parts: [{ text: userPrompt }] }],
+        });
+        return ValidationResultSchema.parse(JSON.parse(response.text ?? ''));
+      } catch (flash2Err) {
+        if (!isGeminiQuotaError(flash2Err)) throw flash2Err;
+        // All Gemini quota exhausted — fall through to DeepSeek
+      }
     }
   }
 
