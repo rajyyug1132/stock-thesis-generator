@@ -211,7 +211,7 @@ export function PortfolioSimulator({
           {stressError && (
             <div
               className="font-mono"
-              style={{ color: 'var(--rust)', fontSize: 'var(--text-small)', padding: '0.5rem 0' }}
+              style={{ color: 'var(--down)', fontSize: 'var(--text-small)', padding: '0.5rem 0' }}
             >
               ⚠ {stressError}
             </div>

@@ -282,10 +282,40 @@ export default function PortfolioPage() {
           <LoginGate />
         ) : (
           <>
-            {/* New simulation CTA */}
-            <div style={{ marginBottom: 32 }}>
+            {/* Nav links */}
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem', marginBottom: 32 }}>
               <Link href="/compare" className="btn btn-outline">
                 + NEW SIMULATION
+              </Link>
+              <Link
+                href="/portfolio/watchlist"
+                style={{
+                  fontFamily: 'var(--font-mono)',
+                  fontSize: 10,
+                  letterSpacing: '0.15em',
+                  padding: '6px 16px',
+                  border: '1px solid var(--border-subtle)',
+                  color: 'var(--text-secondary)',
+                  textDecoration: 'none',
+                  display: 'inline-block',
+                }}
+              >
+                WATCHLIST &amp; ALERTS
+              </Link>
+              <Link
+                href="/portfolio/api-keys"
+                style={{
+                  fontFamily: 'var(--font-mono)',
+                  fontSize: 10,
+                  letterSpacing: '0.15em',
+                  padding: '6px 16px',
+                  border: '1px solid var(--border-subtle)',
+                  color: 'var(--text-secondary)',
+                  textDecoration: 'none',
+                  display: 'inline-block',
+                }}
+              >
+                API KEYS
               </Link>
             </div>
 
