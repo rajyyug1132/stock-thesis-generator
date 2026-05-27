@@ -92,12 +92,12 @@ export async function GET(
     logger.error({ symbol, error: msg }, 'Thesis error');
 
     const isQuota = msg.includes('RESOURCE_EXHAUSTED') || msg.includes('quota') || msg.includes('429');
-    const isBalance = msg.includes('Insufficient Balance');
+    const isBalance = msg.includes('Insufficient Balance') || msg.includes('All AI providers unavailable');
     const userMessage = isQuota
       ? 'AI quota exhausted — all Gemini models at daily limit. Resets at midnight PT.'
       : isBalance
-      ? 'AI provider balance depleted — top up DeepSeek at platform.deepseek.com.'
-      : 'Failed to generate thesis';
+      ? 'All AI providers unavailable. Add GROQ_API_KEY (free at console.groq.com) or top up DeepSeek.'
+      : `Failed to generate thesis: ${msg.slice(0, 120)}`;
 
     return NextResponse.json({ error: userMessage }, { status: 502 });
   }
