@@ -48,12 +48,13 @@ Provide 3-4 bull points, 3-4 bear points, 2-3 risks, 2-3 catalysts.`;
 
 /**
  * Trim context for providers with tight request-size limits (Groq, DeepSeek).
- * Keeps last 60 days of prices and top 5 news items — enough for thesis generation.
+ * Strips the raw prices array entirely (stats already capture annualReturn/vol/sharpe/trend)
+ * and keeps only 5 news items. Saves ~15k tokens with no loss of thesis quality.
  */
-function trimContext(context: Context): Context {
+function trimContext(context: Context): Omit<Context, 'prices'> & { prices: never[] } {
   return {
     ...context,
-    prices: context.prices?.slice(-60) ?? [],
+    prices: [],   // stats object covers everything the AI needs
     news: context.news?.slice(0, 5) ?? [],
   };
 }
