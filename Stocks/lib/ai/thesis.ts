@@ -1,4 +1,5 @@
-import { ai, proModel, flashModel } from './gemini';
+import { getAI, geminiAvailable, proModel, flashModel } from './gemini';
+import { deepseekGenerate, deepseekAvailable, isGeminiQuotaError } from './deepseek';
 import { ThesisSchema, thesisResponseSchema, type Thesis } from './schemas';
 import type { Context } from './context';
 
@@ -16,56 +17,133 @@ STRICT RULES:
 
 const RETRY_SUFFIX = `\n\nCRITICAL: Your previous response failed schema validation. Ensure ALL evidence fields cite specific numbers from the JSON (e.g. "P/E of 24.3").`;
 
-export async function generateThesis(context: Context): Promise<Thesis & { tokenUsage?: object }> {
+const DEEPSEEK_SCHEMA_HINT = `
+Output a JSON object with this exact structure:
+{
+  "symbol": "string (e.g. RELIANCE.NS)",
+  "generatedAt": "ISO 8601 datetime string",
+  "summary": "2-3 sentence executive summary",
+  "bullCase": {
+    "headline": "short bull headline",
+    "points": [
+      { "claim": "string", "evidence": "string citing specific numbers from the data", "confidence": "high|medium|low" }
+    ]
+  },
+  "bearCase": {
+    "headline": "short bear headline",
+    "points": [
+      { "claim": "string", "evidence": "string citing specific numbers from the data", "confidence": "high|medium|low" }
+    ]
+  },
+  "risks": [
+    { "risk": "string", "severity": "high|medium|low" }
+  ],
+  "catalysts": [
+    { "event": "string", "timeframe": "string", "impact": "positive|negative|mixed" }
+  ],
+  "priceDropEvent": null
+}
+Provide 3-4 bull points, 3-4 bear points, 2-3 risks, 2-3 catalysts.`;
+
+function injectDefaults(parsed: unknown, context: Context): unknown {
+  if (typeof parsed === 'object' && parsed !== null) {
+    const obj = parsed as Record<string, unknown>;
+    if (!obj.symbol) obj.symbol = context.symbol;
+    if (!obj.generatedAt) obj.generatedAt = new Date().toISOString();
+  }
+  return parsed;
+}
+
+// ── Gemini path ──────────────────────────────────────────────────────────────
+
+async function attemptGemini(
+  context: Context,
+  extraSuffix = '',
+  model = proModel
+): Promise<Thesis & { tokenUsage?: object }> {
+  const ai = getAI();
   const userContent = JSON.stringify(context, null, 2);
 
-  // Try pro first, fall back to flash if quota exhausted
-  const attempt = async (extraSuffix = '', model = proModel): Promise<Thesis & { tokenUsage?: object }> => {
-    const response = await ai.models.generateContent({
-      model,
-      config: {
-        temperature: 0.3,
-        responseMimeType: 'application/json',
-        responseSchema: thesisResponseSchema,
-        systemInstruction: SYSTEM_PROMPT + extraSuffix,
+  const response = await ai.models.generateContent({
+    model,
+    config: {
+      temperature: 0.3,
+      responseMimeType: 'application/json',
+      responseSchema: thesisResponseSchema,
+      systemInstruction: SYSTEM_PROMPT + extraSuffix,
+    },
+    contents: [
+      {
+        role: 'user',
+        parts: [{ text: `Generate an investment thesis for this stock:\n\n${userContent}` }],
       },
-      contents: [
-        {
-          role: 'user',
-          parts: [{ text: `Generate an investment thesis for this stock:\n\n${userContent}` }],
-        },
-      ],
-    });
+    ],
+  });
 
-    const text = response.text ?? '';
-    const parsed: unknown = JSON.parse(text);
+  const text = response.text ?? '';
+  const parsed = injectDefaults(JSON.parse(text), context);
+  const thesis = ThesisSchema.parse(parsed);
+  return { ...thesis, tokenUsage: response.usageMetadata ?? undefined };
+}
 
-    // Inject symbol + generatedAt if Gemini omits them
-    if (typeof parsed === 'object' && parsed !== null) {
-      const obj = parsed as Record<string, unknown>;
-      if (!obj.symbol) obj.symbol = context.symbol;
-      if (!obj.generatedAt) obj.generatedAt = new Date().toISOString();
-    }
+// ── DeepSeek path ────────────────────────────────────────────────────────────
 
-    const thesis = ThesisSchema.parse(parsed);
-    const tokenUsage = response.usageMetadata ?? undefined;
+async function attemptDeepSeek(context: Context): Promise<Thesis & { tokenUsage?: object }> {
+  const userContent = JSON.stringify(context, null, 2);
 
-    return { ...thesis, tokenUsage };
-  };
+  const text = await deepseekGenerate({
+    systemPrompt: SYSTEM_PROMPT + DEEPSEEK_SCHEMA_HINT,
+    userPrompt: `Generate an investment thesis for this stock:\n\n${userContent}`,
+    temperature: 0.3,
+  });
 
-  try {
-    return await attempt();
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    // If quota exhausted on pro, fall back to flash
-    if (msg.includes('429') || msg.includes('RESOURCE_EXHAUSTED')) {
-      try {
-        return await attempt('', flashModel);
-      } catch {
-        return await attempt(RETRY_SUFFIX, flashModel);
+  const parsed = injectDefaults(JSON.parse(text), context);
+  return ThesisSchema.parse(parsed) as Thesis & { tokenUsage?: object };
+}
+
+// ── Public API ───────────────────────────────────────────────────────────────
+
+export async function generateThesis(context: Context): Promise<Thesis & { tokenUsage?: object }> {
+  // 1. Try Gemini Pro
+  if (geminiAvailable()) {
+    try {
+      return await attemptGemini(context);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+
+      if (isGeminiQuotaError(err)) {
+        // 2. Gemini quota hit — try Flash
+        try {
+          return await attemptGemini(context, '', flashModel);
+        } catch (flashErr) {
+          if (isGeminiQuotaError(flashErr)) {
+            // 3. All Gemini quota exhausted — fall through to DeepSeek
+          } else {
+            // Flash failed for non-quota reason — retry with stricter prompt
+            try {
+              return await attemptGemini(context, RETRY_SUFFIX, flashModel);
+            } catch {
+              // Still failing, fall through to DeepSeek
+            }
+          }
+        }
+      } else if (!msg.includes('GeminiConfigError')) {
+        // Non-quota Gemini error: retry with stricter prompt once
+        try {
+          return await attemptGemini(context, RETRY_SUFFIX);
+        } catch {
+          // Fall through to DeepSeek
+        }
       }
     }
-    // Other error: retry with stricter prompt on same model
-    return await attempt(RETRY_SUFFIX);
   }
+
+  // 4. DeepSeek fallback
+  if (deepseekAvailable()) {
+    return await attemptDeepSeek(context);
+  }
+
+  throw new Error(
+    'All AI providers unavailable. Set GEMINI_API_KEY and/or DEEPSEEK_API_KEY.'
+  );
 }

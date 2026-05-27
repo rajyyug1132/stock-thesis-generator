@@ -1,4 +1,5 @@
-import { ai, flashModel } from './gemini';
+import { getAI, geminiAvailable, flashModel } from './gemini';
+import { deepseekGenerate, deepseekAvailable, isGeminiQuotaError } from './deepseek';
 import {
   ValidationResultSchema,
   validationResponseSchema,
@@ -21,11 +22,26 @@ A claim is UNVERIFIED if:
 
 Output JSON only.`;
 
-export async function validateThesis(
-  thesis: Thesis,
-  context: Context
-): Promise<ValidationResult> {
-  // Extract all claims from thesis to give Gemini explicit list
+const DEEPSEEK_SCHEMA_HINT = `
+Output a JSON object:
+{
+  "claims": [
+    {
+      "location": "string (e.g. bullCase.points[0])",
+      "claim": "string",
+      "evidence": "string",
+      "verified": true or false,
+      "reason": "string explaining why verified or not"
+    }
+  ],
+  "overallScore": 0.0 to 1.0,
+  "summary": "1-2 sentences about overall grounding quality"
+}`;
+
+function buildPrompt(thesis: Thesis, context: Context): {
+  allClaims: Array<{ location: string; claim: string; evidence: string }>;
+  userPrompt: string;
+} {
   const allClaims: Array<{ location: string; claim: string; evidence: string }> = [];
 
   thesis.bullCase.points.forEach((p, i) => {
@@ -38,7 +54,13 @@ export async function validateThesis(
     allClaims.push({ location: `risks[${i}]`, claim: r.risk, evidence: r.risk });
   });
 
-  const prompt = `SOURCE DATA:\n${JSON.stringify(context, null, 2)}\n\nTHESIS CLAIMS TO VERIFY:\n${JSON.stringify(allClaims, null, 2)}`;
+  const userPrompt = `SOURCE DATA:\n${JSON.stringify(context, null, 2)}\n\nTHESIS CLAIMS TO VERIFY:\n${JSON.stringify(allClaims, null, 2)}`;
+  return { allClaims, userPrompt };
+}
+
+async function validateWithGemini(thesis: Thesis, context: Context): Promise<ValidationResult> {
+  const ai = getAI();
+  const { userPrompt } = buildPrompt(thesis, context);
 
   const response = await ai.models.generateContent({
     model: flashModel,
@@ -48,10 +70,46 @@ export async function validateThesis(
       responseSchema: validationResponseSchema,
       systemInstruction: SYSTEM_PROMPT,
     },
-    contents: [{ role: 'user', parts: [{ text: prompt }] }],
+    contents: [{ role: 'user', parts: [{ text: userPrompt }] }],
   });
 
   const text = response.text ?? '';
-  const parsed: unknown = JSON.parse(text);
-  return ValidationResultSchema.parse(parsed);
+  return ValidationResultSchema.parse(JSON.parse(text));
+}
+
+async function validateWithDeepSeek(thesis: Thesis, context: Context): Promise<ValidationResult> {
+  const { userPrompt } = buildPrompt(thesis, context);
+
+  const text = await deepseekGenerate({
+    systemPrompt: SYSTEM_PROMPT + DEEPSEEK_SCHEMA_HINT,
+    userPrompt,
+    temperature: 0,
+  });
+
+  return ValidationResultSchema.parse(JSON.parse(text));
+}
+
+export async function validateThesis(
+  thesis: Thesis,
+  context: Context
+): Promise<ValidationResult> {
+  if (geminiAvailable()) {
+    try {
+      return await validateWithGemini(thesis, context);
+    } catch (err) {
+      if (!isGeminiQuotaError(err)) throw err;
+      // Quota exhausted — fall through to DeepSeek
+    }
+  }
+
+  if (deepseekAvailable()) {
+    return await validateWithDeepSeek(thesis, context);
+  }
+
+  // Soft fail: return a neutral validation rather than crashing the whole thesis
+  return ValidationResultSchema.parse({
+    claims: [],
+    overallScore: 0.5,
+    summary: 'Validation unavailable — no AI provider configured.',
+  });
 }
