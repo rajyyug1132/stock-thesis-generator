@@ -6,11 +6,16 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export function getBaseUrl() {
-  if (process.env.VERCEL_URL) {
-    return `https://${process.env.VERCEL_URL}`;
+  // VERCEL_PROJECT_PRODUCTION_URL = stable production alias (no SSO protection)
+  // VERCEL_URL = deployment-specific URL (protected by Vercel deployment auth → 401)
+  if (process.env.VERCEL_PROJECT_PRODUCTION_URL) {
+    return `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`;
   }
   if (process.env.NEXT_PUBLIC_APP_URL) {
     return process.env.NEXT_PUBLIC_APP_URL;
+  }
+  if (process.env.VERCEL_URL) {
+    return `https://${process.env.VERCEL_URL}`;
   }
   return "http://localhost:3000";
 }
