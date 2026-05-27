@@ -13,6 +13,7 @@ import { Type } from '@google/genai';
 export const ThesisPointSchema = z.object({
   claim: z.string(),
   evidence: z.string(),
+  confidence: z.enum(['high', 'medium', 'low']).catch('medium').optional(),
 });
 
 export const ThesisCaseSchema = z.object({
@@ -20,15 +21,18 @@ export const ThesisCaseSchema = z.object({
   points: z.array(ThesisPointSchema).min(1).max(5),
 });
 
+const severityEnum = z.enum(['low', 'medium', 'high']).catch('medium');
+const impactEnum = z.enum(['positive', 'negative', 'mixed']).catch('mixed');
+
 export const RiskSchema = z.object({
   risk: z.string(),
-  severity: z.enum(['low', 'medium', 'high']),
+  severity: severityEnum,
 });
 
 export const CatalystSchema = z.object({
   event: z.string(),
   timeframe: z.string(),
-  impact: z.enum(['positive', 'negative', 'mixed']),
+  impact: impactEnum,
 });
 
 export const ThesisSchema = z.object({
@@ -40,7 +44,8 @@ export const ThesisSchema = z.object({
   risks: z.array(RiskSchema).min(0).max(4),
   catalysts: z.array(CatalystSchema).min(0).max(4),
   priceDropEvent: z.object({
-    dropPercent: z.string(),
+    // Llama models may return a number — coerce to string
+    dropPercent: z.union([z.string(), z.number()]).transform(String),
     eventHeadline: z.string(),
   }).nullable().optional(),
 });
