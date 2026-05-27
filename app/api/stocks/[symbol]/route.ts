@@ -40,7 +40,7 @@ export async function GET(
         () => fetchPrices(symbol, '1y')
       ),
       isIndex
-        ? Promise.resolve({ data: {} as ReturnType<typeof normalizeFundamentals>, cached: false, stale: false, cacheError: false })
+        ? Promise.resolve({ data: { marketCap: null, peRatio: null, pbRatio: null, roe: null, debtToEquity: null, dividendYield: null }, cached: false, stale: false, cacheError: false })
         : cached(
             `stock:${symbol}:fundamentals`,
             86400, // 24 hour TTL
@@ -50,7 +50,9 @@ export async function GET(
 
     const prices = pricesResult.data;
     const rawFundamentals = fundamentalsResult.data;
-    const fundamentals = normalizeFundamentals(rawFundamentals);
+    const fundamentals = isIndex
+      ? (rawFundamentals as ReturnType<typeof normalizeFundamentals>)
+      : normalizeFundamentals(rawFundamentals);
 
     // 3. Check for cached thesis to attach priceDropEvent if exists
     let priceDropEvent = null;
