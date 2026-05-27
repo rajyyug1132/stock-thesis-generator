@@ -10,6 +10,8 @@ import { NIFTY_50 } from '@/lib/data/nifty50';
 import { useAuth } from '@/hooks/use-auth';
 import { useStockStream } from '@/providers/stock-stream-provider';
 import { BioPulseOverlay } from '@/components/bionic-pulse-overlay';
+import { NotificationBell } from '@/components/notifications/notification-bell';
+import { useNotificationsContext } from '@/providers/notifications-provider';
 
 // Load TickerCanvas only on the client (uses Web Worker + canvas APIs)
 const TickerCanvas = dynamic(
@@ -197,6 +199,8 @@ export function Header() {
   const positive     = niftyLive ? niftyLive.change >= 0 : true;
   const { user, token } = useAuth();
   const { latestAnomaly, jitterAmplitude } = useStockStream();
+
+  const notifications = useNotificationsContext();
 
   const [showCommandPalette, setShowCommandPalette] = useState(false);
   const [paletteQuery, setPaletteQuery]             = useState('');
@@ -494,6 +498,11 @@ export function Header() {
             );
           })}
         </nav>
+
+        {/* Notification bell — only shown when logged in */}
+        {user && (
+          <NotificationBell notifications={notifications} />
+        )}
 
         {/* Live NIFTY ticker — with jitter graph behind it */}
         <div
