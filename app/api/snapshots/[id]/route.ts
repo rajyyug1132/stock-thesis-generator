@@ -4,10 +4,16 @@ import postgres from 'postgres';
 import { eq, and } from 'drizzle-orm';
 import { simulationSnapshots } from '@/lib/db/schema';
 import { supabaseServer } from '@/lib/supabase/server';
+import logger from '@/lib/utils/logger';
 
-function getDb() {
+async function withDb<T>(fn: (db: ReturnType<typeof drizzle>) => Promise<T>): Promise<T> {
   const conn = postgres(process.env.DATABASE_URL!, { max: 1 });
-  return drizzle(conn);
+  const db = drizzle(conn);
+  try {
+    return await fn(db);
+  } finally {
+    await conn.end();
+  }
 }
 
 async function getUserId(request: NextRequest): Promise<string | null> {
@@ -30,17 +36,18 @@ export async function DELETE(
 
   try {
     const { id } = await params;
-    const db = getDb();
-    await db
-      .delete(simulationSnapshots)
-      .where(and(
-        eq(simulationSnapshots.id, id),
-        eq(simulationSnapshots.userId, userId),
-      ));
+    await withDb((db) =>
+      db
+        .delete(simulationSnapshots)
+        .where(and(
+          eq(simulationSnapshots.id, id),
+          eq(simulationSnapshots.userId, userId),
+        ))
+    );
 
     return NextResponse.json({ ok: true });
   } catch (err) {
-    console.error('[snapshots DELETE]', err);
+    logger.error({ userId, error: (err as Error).message }, 'Snapshot DELETE error');
     return NextResponse.json({ error: 'DB error' }, { status: 500 });
   }
 }
