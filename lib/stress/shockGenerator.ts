@@ -1,4 +1,5 @@
-import { getAI, flashModel } from '@/lib/ai/gemini';
+import { getAI, flashModel, geminiAvailable } from '@/lib/ai/gemini';
+import { groqGenerate, groqAvailable } from '@/lib/ai/groq';
 import type { ShockSpec } from './types';
 import { NIFTY_50, getSector } from '@/lib/data/nifty50';
 
@@ -63,6 +64,40 @@ const RESPONSE_SCHEMA = {
   required: ['rationale', 'scenarioName', 'shocks', 'confidence'],
 };
 
+function isQuotaError(err: unknown): boolean {
+  const msg = err instanceof Error ? err.message : String(err);
+  return (
+    msg.includes('RESOURCE_EXHAUSTED') ||
+    msg.includes('quota') ||
+    msg.includes('429') ||
+    msg.includes('rate limit') ||
+    msg.includes('rate_limit')
+  );
+}
+
+/** Validate + coerce raw parsed JSON into a ShockSpec, throwing if required fields are missing. */
+function coerceShockSpec(raw: unknown): ShockSpec {
+  if (!raw || typeof raw !== 'object') throw new Error('ShockSpec: expected object');
+  const r = raw as Record<string, unknown>;
+  if (typeof r.rationale !== 'string') throw new Error('ShockSpec: missing rationale');
+  if (typeof r.scenarioName !== 'string') throw new Error('ShockSpec: missing scenarioName');
+  if (!Array.isArray(r.shocks)) throw new Error('ShockSpec: missing shocks array');
+  if (!['high', 'medium', 'low'].includes(r.confidence as string)) {
+    r.confidence = 'medium';
+  }
+  return r as unknown as ShockSpec;
+}
+
+async function generateWithGroq(query: string, portfolioContext: object[]): Promise<ShockSpec> {
+  const userPrompt = `Portfolio: ${JSON.stringify(portfolioContext)}\n\nScenario: ${query}`;
+  const raw = await groqGenerate({
+    systemPrompt: SYSTEM_PROMPT,
+    userPrompt,
+    temperature: 0.2,
+  });
+  return coerceShockSpec(JSON.parse(raw));
+}
+
 export async function generateShockSpec(
   query: string,
   symbols: string[]
@@ -73,25 +108,39 @@ export async function generateShockSpec(
     sector: getSector(s),
   }));
 
-  const response = await getAI().models.generateContent({
-    model: flashModel,
-    contents: [
-      {
-        role: 'user',
-        parts: [
+  // 1. Try Gemini Flash (structured output with responseSchema)
+  if (geminiAvailable()) {
+    try {
+      const response = await getAI().models.generateContent({
+        model: flashModel,
+        contents: [
           {
-            text: `Portfolio:\n${JSON.stringify(portfolioContext, null, 2)}\n\nScenario:\n${query}`,
+            role: 'user',
+            parts: [
+              {
+                text: `Portfolio:\n${JSON.stringify(portfolioContext, null, 2)}\n\nScenario:\n${query}`,
+              },
+            ],
           },
         ],
-      },
-    ],
-    config: {
-      systemInstruction: SYSTEM_PROMPT,
-      responseMimeType: 'application/json',
-      responseSchema: RESPONSE_SCHEMA,
-      temperature: 0.2,
-    },
-  });
+        config: {
+          systemInstruction: SYSTEM_PROMPT,
+          responseMimeType: 'application/json',
+          responseSchema: RESPONSE_SCHEMA,
+          temperature: 0.2,
+        },
+      });
+      return JSON.parse(response.text!) as ShockSpec;
+    } catch (err) {
+      if (!isQuotaError(err)) throw err;
+      // Quota exhausted — fall through to Groq
+    }
+  }
 
-  return JSON.parse(response.text!) as ShockSpec;
+  // 2. Groq fallback (llama-3.3-70b, json_object mode)
+  if (groqAvailable()) {
+    return generateWithGroq(query, portfolioContext);
+  }
+
+  throw new Error('No AI provider available for stress test — set GEMINI_API_KEY or GROQ_API_KEY');
 }
