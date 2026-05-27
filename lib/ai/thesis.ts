@@ -111,7 +111,9 @@ async function attemptDeepSeek(context: Context): Promise<Thesis & { tokenUsage?
     temperature: 0.3,
   });
 
-  const parsed = injectDefaults(JSON.parse(text), context);
+  const rawDs = JSON.parse(text) as Record<string, unknown>;
+  rawDs.priceDropEvent = null; // no prices in trimmed context
+  const parsed = injectDefaults(rawDs, context);
   return ThesisSchema.parse(parsed) as Thesis & { tokenUsage?: object };
 }
 
@@ -126,7 +128,10 @@ async function attemptGroq(context: Context): Promise<Thesis & { tokenUsage?: ob
     temperature: 0.3,
   });
 
-  const parsed = injectDefaults(JSON.parse(text), context);
+  const raw = JSON.parse(text) as Record<string, unknown>;
+  // No prices in context → model can't assess price drops → force null
+  raw.priceDropEvent = null;
+  const parsed = injectDefaults(raw, context);
   return ThesisSchema.parse(parsed) as Thesis & { tokenUsage?: object };
 }
 
