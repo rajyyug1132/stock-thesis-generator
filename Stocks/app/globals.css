@@ -118,14 +118,11 @@ html {
 }
 
 body {
-  background: var(--bg-canvas);
-  color: var(--text-primary);
+  background: #0a0a08;
+  color: #f0ebe0;
   font-family: var(--font-sans);
   font-size: var(--text-body);
-  font-feature-settings: 'ss01', 'cv11';
-  line-height: 1.55;
   -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
