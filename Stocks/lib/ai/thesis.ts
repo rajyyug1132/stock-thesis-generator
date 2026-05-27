@@ -18,6 +18,13 @@ STRICT RULES:
 
 const RETRY_SUFFIX = `\n\nCRITICAL: Your previous response failed schema validation. Ensure ALL evidence fields cite specific numbers from the JSON (e.g. "P/E of 24.3").`;
 
+/** Compact prompt for Groq/DeepSeek — fits within tight TPM budgets */
+const GROQ_SYSTEM_PROMPT = `Equity analyst. Write investment thesis as JSON for an Indian NSE stock. Use only numbers from the provided data. Output ONLY JSON, no prose.`;
+
+const GROQ_SCHEMA_HINT = `
+Return JSON: {"symbol":"X.NS","generatedAt":"ISO date","summary":"2 sentences","bullCase":{"headline":"str","points":[{"claim":"str","evidence":"cite data numbers"}]},"bearCase":{"headline":"str","points":[{"claim":"str","evidence":"cite data numbers"}]},"risks":[{"risk":"str","severity":"high|medium|low"}],"catalysts":[{"event":"str","timeframe":"str","impact":"positive|negative|mixed"}],"priceDropEvent":null}
+3-4 bull, 3-4 bear, 2-3 risks, 2-3 catalysts. Evidence MUST cite actual numbers from the data.`;
+
 const DEEPSEEK_SCHEMA_HINT = `
 Output a JSON object with this exact structure:
 {
@@ -123,8 +130,8 @@ async function attemptGroq(context: Context): Promise<Thesis & { tokenUsage?: ob
   const userContent = JSON.stringify(trimContext(context), null, 2);
 
   const text = await groqGenerate({
-    systemPrompt: SYSTEM_PROMPT + DEEPSEEK_SCHEMA_HINT, // same hint works for json_object mode
-    userPrompt: `Generate an investment thesis for this stock:\n\n${userContent}`,
+    systemPrompt: GROQ_SYSTEM_PROMPT + GROQ_SCHEMA_HINT,
+    userPrompt: `Thesis for:\n${userContent}`,
     temperature: 0.3,
   });
 

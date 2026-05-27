@@ -35,7 +35,7 @@ export async function groqGenerate(opts: GroqOptions): Promise<string> {
       Authorization: `Bearer ${key}`,
     },
     body: JSON.stringify({
-      model: 'llama-3.1-8b-instant', // 30k TPM free tier vs 12k for 70B; good enough for structured thesis
+      model: 'llama-3.3-70b-versatile', // 12k TPM free tier; compact prompt keeps request ~2k tokens
       messages: [
         { role: 'system', content: opts.systemPrompt },
         { role: 'user', content: opts.userPrompt },
