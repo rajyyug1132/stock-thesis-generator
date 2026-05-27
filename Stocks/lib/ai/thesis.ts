@@ -198,7 +198,12 @@ export async function generateThesis(context: Context): Promise<Thesis & { token
 
   // 5. Groq fallback (14,400 req/day free, Llama 3.3 70B)
   if (groqAvailable()) {
-    return await attemptGroq(context);
+    try {
+      return await attemptGroq(context);
+    } catch (err) {
+      // Let rate-limit and other Groq errors propagate with clear message
+      throw err;
+    }
   }
 
   throw new Error(
