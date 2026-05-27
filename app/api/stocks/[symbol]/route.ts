@@ -29,6 +29,9 @@ export async function GET(
       throw err;
     }
 
+    // Index symbols (^NSEI, ^BSESN) have prices but no fundamentals
+    const isIndex = symbol.startsWith('^');
+
     // 2. Fetch prices and fundamentals in parallel with caching
     const [pricesResult, fundamentalsResult] = await Promise.all([
       cached(
@@ -36,11 +39,13 @@ export async function GET(
         3600, // 1 hour TTL
         () => fetchPrices(symbol, '1y')
       ),
-      cached(
-        `stock:${symbol}:fundamentals`,
-        86400, // 24 hour TTL
-        () => fetchFundamentals(symbol)
-      ),
+      isIndex
+        ? Promise.resolve({ data: {} as ReturnType<typeof normalizeFundamentals>, cached: false, stale: false, cacheError: false })
+        : cached(
+            `stock:${symbol}:fundamentals`,
+            86400, // 24 hour TTL
+            () => fetchFundamentals(symbol)
+          ),
     ]);
 
     const prices = pricesResult.data;
