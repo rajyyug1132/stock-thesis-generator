@@ -35,7 +35,7 @@ export async function groqGenerate(opts: GroqOptions): Promise<string> {
       Authorization: `Bearer ${key}`,
     },
     body: JSON.stringify({
-      model: 'llama-3.3-70b-versatile',
+      model: 'llama-3.1-8b-instant', // 30k TPM free tier vs 12k for 70B; good enough for structured thesis
       messages: [
         { role: 'system', content: opts.systemPrompt },
         { role: 'user', content: opts.userPrompt },
