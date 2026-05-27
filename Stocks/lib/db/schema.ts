@@ -1,4 +1,4 @@
-import { pgTable, text, jsonb, timestamp, uuid, real } from 'drizzle-orm/pg-core';
+import { pgTable, text, jsonb, timestamp, uuid, real, boolean, pgEnum } from 'drizzle-orm/pg-core';
 
 /* ── simulation_snapshots ──────────────────────────────────────────────────── */
 export const simulationSnapshots = pgTable('simulation_snapshots', {
@@ -15,3 +15,32 @@ export const simulationSnapshots = pgTable('simulation_snapshots', {
 
 export type SimulationSnapshot = typeof simulationSnapshots.$inferSelect;
 export type NewSimulationSnapshot = typeof simulationSnapshots.$inferInsert;
+
+/* ── watchlist ──────────────────────────────────────────────────────────────── */
+export const watchlist = pgTable('watchlist', {
+  id:        uuid('id').defaultRandom().primaryKey(),
+  userId:    text('user_id').notNull(),
+  symbol:    text('symbol').notNull(),             // e.g. 'RELIANCE.NS'
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+});
+
+export type WatchlistItem = typeof watchlist.$inferSelect;
+export type NewWatchlistItem = typeof watchlist.$inferInsert;
+
+/* ── price_alerts ───────────────────────────────────────────────────────────── */
+export const alertDirectionEnum = pgEnum('alert_direction', ['above', 'below']);
+
+export const priceAlerts = pgTable('price_alerts', {
+  id:          uuid('id').defaultRandom().primaryKey(),
+  userId:      text('user_id').notNull(),
+  symbol:      text('symbol').notNull(),
+  targetPrice: real('target_price').notNull(),
+  direction:   alertDirectionEnum('direction').notNull(), // 'above' | 'below'
+  label:       text('label'),                              // optional user note e.g. "Buy target"
+  triggered:   boolean('triggered').default(false).notNull(),
+  triggeredAt: timestamp('triggered_at', { withTimezone: true }),
+  createdAt:   timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+});
+
+export type PriceAlert = typeof priceAlerts.$inferSelect;
+export type NewPriceAlert = typeof priceAlerts.$inferInsert;
