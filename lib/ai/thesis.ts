@@ -46,6 +46,18 @@ Output a JSON object with this exact structure:
 }
 Provide 3-4 bull points, 3-4 bear points, 2-3 risks, 2-3 catalysts.`;
 
+/**
+ * Trim context for providers with tight request-size limits (Groq, DeepSeek).
+ * Keeps last 60 days of prices and top 5 news items — enough for thesis generation.
+ */
+function trimContext(context: Context): Context {
+  return {
+    ...context,
+    prices: context.prices?.slice(-60) ?? [],
+    news: context.news?.slice(0, 5) ?? [],
+  };
+}
+
 function injectDefaults(parsed: unknown, context: Context): unknown {
   if (typeof parsed === 'object' && parsed !== null) {
     const obj = parsed as Record<string, unknown>;
@@ -90,7 +102,7 @@ async function attemptGemini(
 // ── DeepSeek path ────────────────────────────────────────────────────────────
 
 async function attemptDeepSeek(context: Context): Promise<Thesis & { tokenUsage?: object }> {
-  const userContent = JSON.stringify(context, null, 2);
+  const userContent = JSON.stringify(trimContext(context), null, 2);
 
   const text = await deepseekGenerate({
     systemPrompt: SYSTEM_PROMPT + DEEPSEEK_SCHEMA_HINT,
@@ -105,7 +117,7 @@ async function attemptDeepSeek(context: Context): Promise<Thesis & { tokenUsage?
 // ── Groq path ────────────────────────────────────────────────────────────────
 
 async function attemptGroq(context: Context): Promise<Thesis & { tokenUsage?: object }> {
-  const userContent = JSON.stringify(context, null, 2);
+  const userContent = JSON.stringify(trimContext(context), null, 2);
 
   const text = await groqGenerate({
     systemPrompt: SYSTEM_PROMPT + DEEPSEEK_SCHEMA_HINT, // same hint works for json_object mode
