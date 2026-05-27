@@ -1,5 +1,6 @@
 import { getAI, geminiAvailable, flashModel, flash2Model } from './gemini';
 import { deepseekGenerate, deepseekAvailable, isGeminiQuotaError } from './deepseek';
+import { groqGenerate, groqAvailable } from './groq';
 import {
   ValidationResultSchema,
   validationResponseSchema,
@@ -116,7 +117,23 @@ export async function validateThesis(
   }
 
   if (deepseekAvailable()) {
-    return await validateWithDeepSeek(thesis, context);
+    try {
+      return await validateWithDeepSeek(thesis, context);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      if (!msg.includes('Insufficient Balance')) throw err;
+      // Balance depleted — fall through to Groq
+    }
+  }
+
+  if (groqAvailable()) {
+    const { userPrompt } = buildPrompt(thesis, context);
+    const text = await groqGenerate({
+      systemPrompt: SYSTEM_PROMPT + DEEPSEEK_SCHEMA_HINT,
+      userPrompt,
+      temperature: 0,
+    });
+    return ValidationResultSchema.parse(JSON.parse(text));
   }
 
   // Soft fail: return a neutral validation rather than crashing the whole thesis

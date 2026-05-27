@@ -1,5 +1,6 @@
 import { getAI, geminiAvailable, proModel, flashModel, flash2Model } from './gemini';
 import { deepseekGenerate, deepseekAvailable, isGeminiQuotaError } from './deepseek';
+import { groqGenerate, groqAvailable, isGroqRateLimitError } from './groq';
 import { ThesisSchema, thesisResponseSchema, type Thesis } from './schemas';
 import type { Context } from './context';
 
@@ -101,6 +102,21 @@ async function attemptDeepSeek(context: Context): Promise<Thesis & { tokenUsage?
   return ThesisSchema.parse(parsed) as Thesis & { tokenUsage?: object };
 }
 
+// ── Groq path ────────────────────────────────────────────────────────────────
+
+async function attemptGroq(context: Context): Promise<Thesis & { tokenUsage?: object }> {
+  const userContent = JSON.stringify(context, null, 2);
+
+  const text = await groqGenerate({
+    systemPrompt: SYSTEM_PROMPT + DEEPSEEK_SCHEMA_HINT, // same hint works for json_object mode
+    userPrompt: `Generate an investment thesis for this stock:\n\n${userContent}`,
+    temperature: 0.3,
+  });
+
+  const parsed = injectDefaults(JSON.parse(text), context);
+  return ThesisSchema.parse(parsed) as Thesis & { tokenUsage?: object };
+}
+
 // ── Public API ───────────────────────────────────────────────────────────────
 
 export async function generateThesis(context: Context): Promise<Thesis & { tokenUsage?: object }> {
@@ -153,10 +169,21 @@ export async function generateThesis(context: Context): Promise<Thesis & { token
 
   // 4. DeepSeek fallback
   if (deepseekAvailable()) {
-    return await attemptDeepSeek(context);
+    try {
+      return await attemptDeepSeek(context);
+    } catch (err) {
+      // Insufficient balance or other failure — try Groq
+      const msg = err instanceof Error ? err.message : String(err);
+      if (!msg.includes('Insufficient Balance') && !isGroqRateLimitError(err)) throw err;
+    }
+  }
+
+  // 5. Groq fallback (14,400 req/day free, Llama 3.3 70B)
+  if (groqAvailable()) {
+    return await attemptGroq(context);
   }
 
   throw new Error(
-    'All AI providers unavailable. Set GEMINI_API_KEY and/or DEEPSEEK_API_KEY.'
+    'All AI providers unavailable. Set GEMINI_API_KEY, DEEPSEEK_API_KEY, and/or GROQ_API_KEY.'
   );
 }
