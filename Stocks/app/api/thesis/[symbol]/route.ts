@@ -88,14 +88,18 @@ export async function GET(
 
     return response;
   } catch (err) {
-    logger.error(
-      { symbol, error: err instanceof Error ? err.message : String(err) },
-      'Thesis error'
-    );
-    return NextResponse.json(
-      { error: 'Failed to generate thesis' },
-      { status: 502 }
-    );
+    const msg = err instanceof Error ? err.message : String(err);
+    logger.error({ symbol, error: msg }, 'Thesis error');
+
+    const isQuota = msg.includes('RESOURCE_EXHAUSTED') || msg.includes('quota') || msg.includes('429');
+    const isBalance = msg.includes('Insufficient Balance');
+    const userMessage = isQuota
+      ? 'AI quota exhausted — all Gemini models at daily limit. Resets at midnight PT.'
+      : isBalance
+      ? 'AI provider balance depleted — top up DeepSeek at platform.deepseek.com.'
+      : 'Failed to generate thesis';
+
+    return NextResponse.json({ error: userMessage }, { status: 502 });
   }
 }
 
