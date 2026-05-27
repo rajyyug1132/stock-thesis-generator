@@ -1,4 +1,4 @@
-import { ai, flashModel } from '@/lib/ai/gemini';
+import { getAI, flashModel } from '@/lib/ai/gemini';
 import type { ShockSpec } from './types';
 import { NIFTY_50, getSector } from '@/lib/data/nifty50';
 
@@ -73,7 +73,7 @@ export async function generateShockSpec(
     sector: getSector(s),
   }));
 
-  const response = await ai.models.generateContent({
+  const response = await getAI().models.generateContent({
     model: flashModel,
     contents: [
       {
