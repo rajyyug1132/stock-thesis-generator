@@ -40,6 +40,18 @@ async function fetchThesis(symbol: string): Promise<ThesisResponse> {
   try {
     const baseUrl = getBaseUrl();
     const res = await fetch(`${baseUrl}/api/thesis/${symbol}`);
+
+    const contentType = res.headers.get('content-type');
+    if (!contentType || !contentType.includes('application/json')) {
+      return {
+        thesis: undefined as unknown as Thesis,
+        validation: undefined as unknown as ValidationResult,
+        context: { keyMetrics: {} as KeyMetrics },
+        meta: { cached: false },
+        error: `Thesis engine error (HTTP ${res.status}). Try refreshing.`,
+      };
+    }
+
     const data = (await res.json()) as ThesisResponse;
     if (!res.ok) {
       return {
@@ -99,9 +111,6 @@ async function ThesisSection({ symbol }: { symbol: string }) {
         <SectionLabel>ERROR</SectionLabel>
         <p className="mt-2" style={{ color: 'var(--down)', fontSize: 'var(--text-body)' }}>
           {data.error ?? 'Failed to load thesis'}
-        </p>
-        <p className="mt-1" style={{ color: 'var(--text-tertiary)', fontSize: 'var(--text-small)' }}>
-          Gemini quota may be exhausted — resets every 24h on the free tier.
         </p>
       </Panel>
     );
