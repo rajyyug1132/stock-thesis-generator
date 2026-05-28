@@ -54,15 +54,53 @@ Output a JSON object with this exact structure:
 Provide 3-4 bull points, 3-4 bear points, 2-3 risks, 2-3 catalysts.`;
 
 /**
- * Trim context for providers with tight request-size limits (Groq, DeepSeek).
- * Strips the raw prices array entirely (stats already capture annualReturn/vol/sharpe/trend)
- * and keeps only 5 news items. Saves ~15k tokens with no loss of thesis quality.
+ * Trim context for DeepSeek — strips prices, keeps 5 news.
  */
 function trimContext(context: Context): Omit<Context, 'prices'> & { prices: never[] } {
   return {
     ...context,
-    prices: [],   // stats object covers everything the AI needs
+    prices: [],
     news: context.news?.slice(0, 5) ?? [],
+  };
+}
+
+/**
+ * Ultra-compact context for Groq (free tier: 12k TPM hard limit).
+ * Flattens to a small plain object — ~800-1200 tokens total.
+ * Only non-null fundamentals are included.
+ */
+function groqContext(context: Context): object {
+  const f = context.fundamentals;
+  const funds: Record<string, number> = {};
+  if (f.peRatio   != null) funds.pe   = +f.peRatio.toFixed(2);
+  if (f.pbRatio   != null) funds.pb   = +f.pbRatio.toFixed(2);
+  if (f.roe       != null) funds.roe  = +f.roe.toFixed(4);
+  if (f.debtToEquity != null) funds.de = +f.debtToEquity.toFixed(2);
+  if (f.dividendYield != null) funds.divYield = +f.dividendYield.toFixed(4);
+  if (f.marketCap != null) funds.mcapCr = +(f.marketCap / 1e7).toFixed(0); // convert to ₹Cr
+
+  return {
+    symbol:  context.symbol,
+    name:    context.name,
+    sector:  context.sector,
+    price:   context.currentPrice,
+    stats: {
+      retAnn:  +(context.stats.annualReturn * 100).toFixed(1),   // %
+      volAnn:  +(context.stats.annualVol    * 100).toFixed(1),   // %
+      sharpe:  +context.stats.sharpe.toFixed(2),
+    },
+    trend: {
+      high1Y:     +context.priceTrend.high1Y.toFixed(2),
+      low1Y:      +context.priceTrend.low1Y.toFixed(2),
+      pctFrHigh:  +(context.priceTrend.pctFromHigh * 100).toFixed(1),
+      pctFrLow:   +(context.priceTrend.pctFromLow  * 100).toFixed(1),
+    },
+    fundamentals: funds,
+    // 3 headlines only — no body/url
+    news: (context.news ?? []).slice(0, 3).map((n) => ({
+      t: n.title,
+      d: n.publishedAt?.slice(0, 10) ?? '',
+    })),
   };
 }
 
@@ -127,7 +165,8 @@ async function attemptDeepSeek(context: Context): Promise<Thesis & { tokenUsage?
 // ── Groq path ────────────────────────────────────────────────────────────────
 
 async function attemptGroq(context: Context): Promise<Thesis & { tokenUsage?: object }> {
-  const userContent = JSON.stringify(trimContext(context), null, 2);
+  // Use ultra-compact context (~800-1200 tokens) to stay under Groq's 12k TPM free limit
+  const userContent = JSON.stringify(groqContext(context));
 
   const text = await groqGenerate({
     systemPrompt: GROQ_SYSTEM_PROMPT + GROQ_SCHEMA_HINT,
