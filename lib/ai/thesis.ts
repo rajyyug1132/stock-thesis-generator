@@ -109,7 +109,10 @@ function injectDefaults(parsed: unknown, context: Context): unknown {
   if (typeof parsed === 'object' && parsed !== null) {
     const obj = parsed as Record<string, unknown>;
     if (!obj.symbol) obj.symbol = context.symbol;
-    if (!obj.generatedAt) obj.generatedAt = new Date().toISOString();
+    // Always override generatedAt — never trust the model's date.
+    // Gemini writes dates from its training data (e.g. "2024-09-16") which
+    // makes the thesis appear months stale even when it was just generated.
+    obj.generatedAt = new Date().toISOString();
   }
   return parsed;
 }

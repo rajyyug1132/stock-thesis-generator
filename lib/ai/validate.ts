@@ -56,10 +56,21 @@ function buildPrompt(thesis: Thesis, context: Context, compact = false): {
     allClaims.push({ location: `risks[${i}]`, claim: r.risk, evidence: r.risk });
   });
 
+  // Percentage-form stats so fallback verifiers can match numbers.
+  // groqContext() converts annualReturn 0.052 → 5.2 (%) for token efficiency.
+  // The full context stores it as 0.052. Without both forms, the verifier sees
+  // "5.2%" in the thesis evidence but only finds "0.052" in source → UNVERIFIED.
+  const statsPct = {
+    annualReturnPct: +(context.stats.annualReturn * 100).toFixed(1),
+    annualVolPct:    +(context.stats.annualVol    * 100).toFixed(1),
+    pctFromHighPct:  +(context.priceTrend.pctFromHigh * 100).toFixed(1),
+    pctFromLowPct:   +(context.priceTrend.pctFromLow  * 100).toFixed(1),
+  };
+
   // Compact mode: strip prices array + truncate news — keeps Groq under 12k TPM
   const sourceData = compact
-    ? { ...context, prices: [], news: (context.news ?? []).slice(0, 3).map((n) => ({ title: n.title })) }
-    : context;
+    ? { ...context, prices: [], news: (context.news ?? []).slice(0, 3).map((n) => ({ title: n.title })), _statsPct: statsPct }
+    : { ...context, _statsPct: statsPct };
 
   const userPrompt = `SOURCE DATA:\n${JSON.stringify(sourceData, null, 2)}\n\nTHESIS CLAIMS TO VERIFY:\n${JSON.stringify(allClaims, null, 2)}`;
   return { allClaims, userPrompt };

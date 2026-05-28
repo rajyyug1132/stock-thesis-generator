@@ -34,7 +34,7 @@ export async function GET(
 
   try {
     const result = await cached(
-      `thesis:${symbol}:v2`,
+      `thesis:${symbol}:v3`,
       3600, // 1hr TTL
       async () => {
         const context = await buildContext(symbol);
