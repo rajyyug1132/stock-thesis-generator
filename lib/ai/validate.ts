@@ -39,7 +39,7 @@ Output a JSON object:
   "summary": "1-2 sentences about overall grounding quality"
 }`;
 
-function buildPrompt(thesis: Thesis, context: Context): {
+function buildPrompt(thesis: Thesis, context: Context, compact = false): {
   allClaims: Array<{ location: string; claim: string; evidence: string }>;
   userPrompt: string;
 } {
@@ -55,7 +55,12 @@ function buildPrompt(thesis: Thesis, context: Context): {
     allClaims.push({ location: `risks[${i}]`, claim: r.risk, evidence: r.risk });
   });
 
-  const userPrompt = `SOURCE DATA:\n${JSON.stringify(context, null, 2)}\n\nTHESIS CLAIMS TO VERIFY:\n${JSON.stringify(allClaims, null, 2)}`;
+  // Compact mode: strip prices array + truncate news — keeps Groq under 12k TPM
+  const sourceData = compact
+    ? { ...context, prices: [], news: (context.news ?? []).slice(0, 3).map((n) => ({ title: n.title })) }
+    : context;
+
+  const userPrompt = `SOURCE DATA:\n${JSON.stringify(sourceData, null, 2)}\n\nTHESIS CLAIMS TO VERIFY:\n${JSON.stringify(allClaims, null, 2)}`;
   return { allClaims, userPrompt };
 }
 
@@ -127,7 +132,8 @@ export async function validateThesis(
   }
 
   if (groqAvailable()) {
-    const { userPrompt } = buildPrompt(thesis, context);
+    // compact=true strips prices + truncates news to keep under Groq's 12k TPM
+    const { userPrompt } = buildPrompt(thesis, context, true);
     const text = await groqGenerate({
       systemPrompt: SYSTEM_PROMPT + DEEPSEEK_SCHEMA_HINT,
       userPrompt,

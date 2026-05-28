@@ -42,7 +42,7 @@ export async function groqGenerate(opts: GroqOptions): Promise<string> {
       ],
       temperature: opts.temperature ?? 0.3,
       response_format: { type: 'json_object' },
-      max_tokens: 4096,
+      max_tokens: 1200,
     }),
     signal: AbortSignal.timeout(30_000), // Groq is fast, 30s is generous
   });
