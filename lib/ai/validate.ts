@@ -1,5 +1,6 @@
 import { getAI, geminiAvailable, flashModel, flash2Model } from './gemini';
 import { deepseekGenerate, deepseekAvailable, isGeminiQuotaError } from './deepseek';
+import { openrouterGenerate, openrouterAvailable } from './openrouter';
 import { groqGenerate, groqAvailable } from './groq';
 import {
   ValidationResultSchema,
@@ -128,6 +129,20 @@ export async function validateThesis(
       const msg = err instanceof Error ? err.message : String(err);
       if (!msg.includes('Insufficient Balance')) throw err;
       // Balance depleted — fall through to Groq
+    }
+  }
+
+  if (openrouterAvailable()) {
+    try {
+      const { userPrompt } = buildPrompt(thesis, context, true);
+      const text = await openrouterGenerate({
+        systemPrompt: SYSTEM_PROMPT + DEEPSEEK_SCHEMA_HINT,
+        userPrompt,
+        temperature: 0,
+      });
+      return ValidationResultSchema.parse(JSON.parse(text));
+    } catch {
+      // Fall through to Groq
     }
   }
 

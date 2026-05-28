@@ -1,5 +1,6 @@
 import { getAI, geminiAvailable, proModel, flashModel, flash2Model } from './gemini';
 import { deepseekGenerate, deepseekAvailable, isGeminiQuotaError } from './deepseek';
+import { openrouterGenerate, openrouterAvailable } from './openrouter';
 import { groqGenerate, groqAvailable, isGroqRateLimitError } from './groq';
 import { ThesisSchema, thesisResponseSchema, type Thesis } from './schemas';
 import type { Context } from './context';
@@ -162,6 +163,23 @@ async function attemptDeepSeek(context: Context): Promise<Thesis & { tokenUsage?
   return ThesisSchema.parse(parsed) as Thesis & { tokenUsage?: object };
 }
 
+// ── OpenRouter path ──────────────────────────────────────────────────────────
+
+async function attemptOpenRouter(context: Context): Promise<Thesis & { tokenUsage?: object }> {
+  const userContent = JSON.stringify(groqContext(context));
+
+  const text = await openrouterGenerate({
+    systemPrompt: GROQ_SYSTEM_PROMPT + GROQ_SCHEMA_HINT,
+    userPrompt: `Thesis for:\n${userContent}`,
+    temperature: 0.3,
+  });
+
+  const raw = JSON.parse(text) as Record<string, unknown>;
+  raw.priceDropEvent = null;
+  const parsed = injectDefaults(raw, context);
+  return ThesisSchema.parse(parsed) as Thesis & { tokenUsage?: object };
+}
+
 // ── Groq path ────────────────────────────────────────────────────────────────
 
 async function attemptGroq(context: Context): Promise<Thesis & { tokenUsage?: object }> {
@@ -242,7 +260,18 @@ export async function generateThesis(context: Context): Promise<Thesis & { token
     }
   }
 
-  // 5. Groq fallback (14,400 req/day free, Llama 3.3 70B)
+  // 5. OpenRouter fallback (free models: Gemini 2.0 Flash, Llama 3.3 70B, Mistral 7B)
+  if (openrouterAvailable()) {
+    try {
+      return await attemptOpenRouter(context);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      if (!msg.includes('429') && !msg.includes('rate') && !msg.includes('overloaded')) throw err;
+      // Rate limited on all OpenRouter free models — fall through to Groq
+    }
+  }
+
+  // 6. Groq fallback (14,400 req/day free, Llama 3.3 70B)
   if (groqAvailable()) {
     try {
       return await attemptGroq(context);
