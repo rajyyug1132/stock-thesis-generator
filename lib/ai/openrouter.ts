@@ -1,6 +1,5 @@
 /**
  * OpenRouter API client — OpenAI-compatible, genuinely free models.
- * Free models include google/gemini-2.0-flash-exp:free and others.
  * No TPM/RPM nonsense on free tier — community-sponsored capacity.
  *
  * Sign up (free): https://openrouter.ai — no credit card required.
@@ -12,9 +11,10 @@
 
 const OPENROUTER_BASE = 'https://openrouter.ai/api/v1';
 
-// Models in preference order — all free, all support JSON output
+// Models in preference order — all free, all support JSON output.
+// gemini-2.0-flash-exp:free was deprecated; use the stable 2.0-flash-001 instead.
 const FREE_MODELS = [
-  'google/gemini-2.0-flash-exp:free',
+  'google/gemini-2.0-flash-001:free',
   'meta-llama/llama-3.3-70b-instruct:free',
   'mistralai/mistral-7b-instruct:free',
 ];
@@ -82,11 +82,17 @@ export async function openrouterGenerate(opts: OpenRouterOptions): Promise<strin
       return await callModel(model, opts, key);
     } catch (err) {
       lastErr = err instanceof Error ? err : new Error(String(err));
-      // If rate limited on this model, try next
-      if (lastErr.message.includes('429') || lastErr.message.includes('rate') || lastErr.message.includes('overloaded')) {
+      // Skip to next model on rate limits, 404 (retired model), or overload
+      if (
+        lastErr.message.includes('429') ||
+        lastErr.message.includes('rate') ||
+        lastErr.message.includes('overloaded') ||
+        lastErr.message.includes('404') ||
+        lastErr.message.includes('No endpoints found')
+      ) {
         continue;
       }
-      // Non-rate error — rethrow immediately
+      // Any other error — rethrow immediately
       throw lastErr;
     }
   }
