@@ -57,7 +57,7 @@ export async function GET(
     // 3. Check for cached thesis to attach priceDropEvent if exists
     let priceDropEvent = null;
     try {
-      const thesisCached = await readCache(`thesis:${symbol}:v2`);
+      const thesisCached = await readCache(`thesis:${symbol}:v3`);
       if (thesisCached && thesisCached.thesis) {
         priceDropEvent = thesisCached.thesis.priceDropEvent || null;
       }

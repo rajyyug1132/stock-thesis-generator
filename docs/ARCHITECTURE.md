@@ -59,7 +59,7 @@ These are Vercel serverless functions. The main ones:
 
 **`/api/thesis/[symbol]`** — the core endpoint.
 1. Validates and normalizes the ticker (must be a Nifty 50 symbol)
-2. Checks Redis cache (`thesis:${symbol}:v2`, 1hr TTL)
+2. Checks Redis cache (`thesis:${symbol}:v3`, 1hr TTL)
 3. On cache miss: calls `buildContext()` to fetch prices + fundamentals in parallel
 4. Calls `generateThesis(context)` with the AI cascade
 5. Calls `validateThesis(thesis, context)` to run the verification pass
