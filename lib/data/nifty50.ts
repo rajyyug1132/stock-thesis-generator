@@ -1,6 +1,9 @@
 // Nifty 50 constituents (as of approx 2025 — VERIFY any borderline names)
 // Sector taxonomy custom to this app.
 
+import { NIFTY_NEXT_50 } from './niftyNext50';
+export type { UniverseStock } from './niftyNext50';
+
 export type Sector =
   | 'IT'
   | 'BFSI'
@@ -115,3 +118,10 @@ export function isNifty50(symbol: string): boolean {
 export function getName(symbol: string): string | null {
   return SYMBOL_INDEX.get(symbol)?.name ?? null;
 }
+
+// Combined universe: Nifty 50 + Nifty Next 50 (no duplicates).
+// NiftyBank stocks are a subset of Nifty 50, so they're not added again.
+export const ALL_STOCKS = [
+  ...NIFTY_50.map((s) => ({ ...s, universe: 'nifty50' as const })),
+  ...NIFTY_NEXT_50,
+];

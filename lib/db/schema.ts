@@ -62,3 +62,16 @@ export const apiKeys = pgTable('api_keys', {
 
 export type ApiKey = typeof apiKeys.$inferSelect;
 export type NewApiKey = typeof apiKeys.$inferInsert;
+
+/* ── shared_theses ──────────────────────────────────────────────────────────── */
+export const sharedTheses = pgTable('shared_theses', {
+  id:         uuid('id').defaultRandom().primaryKey(),
+  token:      text('token').notNull().unique(),           // 16-char random hex
+  symbol:     text('symbol').notNull(),
+  thesisJson: jsonb('thesis_json').notNull(),             // snapshot at share time
+  createdAt:  timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  expiresAt:  timestamp('expires_at', { withTimezone: true }).notNull(), // +7 days
+});
+
+export type SharedThesis = typeof sharedTheses.$inferSelect;
+export type NewSharedThesis = typeof sharedTheses.$inferInsert;
