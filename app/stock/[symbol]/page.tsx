@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { SectionLabel } from '@/components/ui/section-label';
 import { Panel } from '@/components/ui/panel';
 import { Pill } from '@/components/ui/pill';
@@ -307,6 +308,22 @@ async function ThesisSection({ symbol }: { symbol: string }) {
           {Math.round(score * 100)}% verified
         </span>
       </footer>
+
+      {/* Compare CTA */}
+      <div style={{ paddingTop: '2rem' }}>
+        <Link
+          href={`/compare?symbols=${thesis.symbol.replace('.NS', '')}`}
+          style={{
+            fontFamily: 'var(--font-mono)',
+            fontSize: 11,
+            letterSpacing: '0.08em',
+            color: 'var(--accent)',
+            textDecoration: 'none',
+          }}
+        >
+          COMPARE WITH ANOTHER STOCK →
+        </Link>
+      </div>
 
     </div>
   );

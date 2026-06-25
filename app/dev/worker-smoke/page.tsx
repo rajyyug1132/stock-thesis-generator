@@ -1,9 +1,11 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { notFound } from 'next/navigation';
 import { useSimulation } from '@/hooks/use-simulation';
 
 export default function WorkerSmokePage() {
+  if (process.env.NODE_ENV === 'production') notFound();
   const { result, loading, error, run } = useSimulation();
   const [covData, setCovData] = useState<{
     symbols: string[];

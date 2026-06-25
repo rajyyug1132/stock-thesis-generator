@@ -6,7 +6,7 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useRef, useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { SectionLabel } from '@/components/ui/section-label';
-import { NIFTY_50 } from '@/lib/data/nifty50';
+import { ALL_STOCKS } from '@/lib/data/nifty50';
 import { useAuth } from '@/hooks/use-auth';
 import { useStockStream } from '@/providers/stock-stream-provider';
 import { BioPulseOverlay } from '@/components/bionic-pulse-overlay';
@@ -347,7 +347,7 @@ export function Header() {
     }
 
     // Filter stocks
-    const matchedStocks = NIFTY_50.filter(
+    const matchedStocks = ALL_STOCKS.filter(
       (s) =>
         s.symbol.toLowerCase().includes(q) ||
         s.name.toLowerCase().includes(q)

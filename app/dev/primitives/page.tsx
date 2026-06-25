@@ -1,3 +1,4 @@
+import { notFound } from 'next/navigation';
 import { SectionLabel } from '@/components/ui/section-label';
 import { Panel } from '@/components/ui/panel';
 import { Pill } from '@/components/ui/pill';
@@ -24,6 +25,7 @@ const MOCK_METRICS: RiskMetrics = {
 };
 
 export default function PrimitivesPage() {
+  if (process.env.NODE_ENV === 'production') notFound();
   return (
     <main className="min-h-screen px-8 py-12 max-w-4xl mx-auto space-y-16">
       {/* Header */}
