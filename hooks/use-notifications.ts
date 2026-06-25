@@ -19,6 +19,8 @@ export interface NotificationsState {
   triggered:       TriggeredAlert[];
   unreadCount:     number;
   loading:         boolean;
+  error:           string | null;
+  refresh:         () => Promise<void>;
   addToWatchlist:  (symbol: string) => Promise<void>;
   removeFromWatchlist: (symbol: string) => Promise<void>;
   createAlert:     (symbol: string, targetPrice: number, direction: 'above' | 'below', label?: string) => Promise<void>;
@@ -39,6 +41,7 @@ export function useNotifications(token: string | null): NotificationsState {
   const [triggered, setTriggered]     = useState<TriggeredAlert[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading]         = useState(false);
+  const [error, setError]             = useState<string | null>(null);
   const pollRef                       = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // ── Fetch watchlist + alerts ──────────────────────────────────────────────
@@ -46,15 +49,18 @@ export function useNotifications(token: string | null): NotificationsState {
   const fetchAll = useCallback(async () => {
     if (!token) return;
     setLoading(true);
+    setError(null);
     try {
-      const [wl, al] = await Promise.all([
-        fetch('/api/notifications/watchlist', { headers: authHeaders(token) }).then((r) => r.json()),
-        fetch('/api/notifications/alerts',    { headers: authHeaders(token) }).then((r) => r.json()),
+      const [wlRes, alRes] = await Promise.all([
+        fetch('/api/notifications/watchlist', { headers: authHeaders(token) }),
+        fetch('/api/notifications/alerts',    { headers: authHeaders(token) }),
       ]);
+      if (!wlRes.ok || !alRes.ok) throw new Error('Could not load your watchlist and alerts.');
+      const [wl, al] = await Promise.all([wlRes.json(), alRes.json()]);
       setWatchlist(wl.watchlist ?? []);
       setAlerts(al.alerts ?? []);
-    } catch {
-      // Silently fail — notifications are non-critical
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Could not load your watchlist and alerts.');
     } finally {
       setLoading(false);
     }
@@ -170,6 +176,8 @@ export function useNotifications(token: string | null): NotificationsState {
     triggered,
     unreadCount,
     loading,
+    error,
+    refresh: fetchAll,
     addToWatchlist,
     removeFromWatchlist,
     createAlert,

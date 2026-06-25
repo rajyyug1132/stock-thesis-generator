@@ -1,5 +1,7 @@
 'use client';
 
+import { ErrorCard } from '@/components/ui/error-card';
+
 export default function Error({
   error,
   reset,
@@ -8,16 +10,13 @@ export default function Error({
   reset: () => void;
 }) {
   return (
-    <main className="min-h-screen bg-gray-50 flex items-center justify-center p-8">
-      <div className="max-w-md w-full rounded-xl border border-red-200 bg-red-50 p-8 text-center">
-        <p className="text-lg font-semibold text-red-700">Failed to load thesis</p>
-        <p className="text-sm text-red-500 mt-2">{error.message}</p>
-        <button
-          onClick={reset}
-          className="mt-6 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700"
-        >
-          Try again
-        </button>
+    <main className="min-h-screen" style={{ background: 'var(--bg-canvas)' }}>
+      <div className="max-w-4xl mx-auto px-8 py-12">
+        <ErrorCard
+          label="ERROR · THESIS FAILED TO LOAD"
+          message={error.message || 'Something went wrong generating this thesis.'}
+          onRetry={reset}
+        />
       </div>
     </main>
   );

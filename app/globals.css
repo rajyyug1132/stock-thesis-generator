@@ -11,6 +11,8 @@
    Accent/up palette: mint green #a8c7ba (bullish = brand color).
 ───────────────────────────────────────────────────────────────────────────── */
 :root {
+  color-scheme: dark;
+
   /* ── Surfaces ──────────────────────────────────────────────────────────── */
   --bg-canvas:    #050505;   /* page base — deep ink black */
   --bg-elevated:  #0d0e10;   /* +1 step: panels, method strip - cooler gray */
@@ -111,6 +113,61 @@
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
+   LIGHT THEME — applied when <html data-theme="light">
+   Warm bone paper, ink text, deepened mint accent so it reads on a pale field.
+   Only colour tokens are overridden; type/space/motion tokens inherit from :root.
+───────────────────────────────────────────────────────────────────────────── */
+:root[data-theme='light'] {
+  color-scheme: light;
+
+  /* Surfaces */
+  --bg-canvas:    #f7f4ec;
+  --bg-elevated:  #efeae0;
+  --bg-card:      #fffefb;
+  --bg-input:     #ebe6da;
+  --bg-rule:      #e3ddd0;
+
+  /* Borders */
+  --border-subtle: #e1dacc;
+  --border-strong: #c6bdab;
+  --border-mint:   #2f8f6f;
+
+  /* Text */
+  --text-primary:    #1b1813;
+  --text-secondary:  #5b554b;
+  --text-tertiary:   #837c6e;
+  --text-quaternary: #a8a08f;
+
+  /* Accent — deepened mint for contrast on light */
+  --accent:        #167a55;
+  --accent-hover:  #0f6043;
+  --accent-muted:  #cfe9df;
+  --accent-deep:   #b3d8c8;
+
+  /* Directional */
+  --up:          #15935a;
+  --up-soft:     rgba(21,147,90,0.10);
+  --up-strong:   #2f6b53;
+  --down:        #d23a55;
+  --down-soft:   rgba(210,58,85,0.10);
+  --down-strong: #a85a48;
+
+  /* Semantic */
+  --unverified:  #9a7a36;
+
+  /* Mint + Bone + Rust palette (light values — these are foreground colours) */
+  --bone:        #1b1813;
+  --bone-dim:    rgba(27,24,19,0.52);
+  --bone-faint:  rgba(27,24,19,0.06);
+  --bone-grid:   rgba(27,24,19,0.06);
+  --mint:        #167a55;
+  --mint-muted:  rgba(22,122,85,0.10);
+  --mint-strong: #0f6043;
+  --rust:        #b5654d;
+  --rust-muted:  rgba(181,101,77,0.12);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
    BASE
 ───────────────────────────────────────────────────────────────────────────── */
 html {
@@ -118,11 +175,13 @@ html {
 }
 
 body {
-  background: #0a0a08;
-  color: #f0ebe0;
+  background: var(--bg-canvas);
+  color: var(--text-primary);
   font-family: var(--font-sans);
   font-size: var(--text-body);
   -webkit-font-smoothing: antialiased;
+  transition: background-color var(--duration-base) var(--ease-standard),
+              color var(--duration-base) var(--ease-standard);
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────

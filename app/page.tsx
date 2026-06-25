@@ -1,11 +1,12 @@
 import Link from 'next/link';
-import Image from 'next/image';
 import { Suspense } from 'react';
 import { MethodStrip } from '@/components/Header';
 import { SectionLabel } from '@/components/ui/section-label';
 import { Panel } from '@/components/ui/panel';
 import { StockGrid } from '@/components/stock-grid';
 import { StockGridSkeleton } from '@/components/stock-grid-skeleton';
+import { HeroTicker } from '@/components/hero-ticker';
+import { ThemeToggle } from '@/components/theme-toggle';
 
 // ISR: revalidate every hour
 export const revalidate = 3600;
@@ -19,20 +20,18 @@ export default function Home() {
         className="border-b"
         style={{ borderColor: 'var(--border-subtle)', position: 'relative', overflow: 'hidden' }}
       >
-        {/* Full-bleed chart acts as a data field behind the type */}
-        <Image
-          src="/assets/hero-bullish-chart.svg"
-          alt="Nifty 50 price trend — bullish upward trajectory"
-          fill
-          priority
+        {/* Live synthetic ticker acts as a data field behind the type */}
+        <div
           style={{
-            objectFit: 'cover',
-            objectPosition: 'center',
-            opacity: 0.4,
+            position: 'absolute',
+            inset: 0,
+            opacity: 0.45,
             pointerEvents: 'none',
             zIndex: 0,
           }}
-        />
+        >
+          <HeroTicker />
+        </div>
         <div
           className="column"
           style={{ position: 'relative', zIndex: 1, padding: '96px 32px 88px', display: 'flex', flexDirection: 'column', gap: 22 }}
@@ -140,6 +139,9 @@ export default function Home() {
           NIFTY 50 THESIS ENGINE · DATA FROM YAHOO FINANCE · AI BY GOOGLE GEMINI · NOT FINANCIAL ADVICE
         </div>
       </footer>
+
+      {/* Theme switcher — light / dark / system */}
+      <ThemeToggle />
 
     </main>
   );

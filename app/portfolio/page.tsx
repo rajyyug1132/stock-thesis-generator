@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useAuth } from '@/hooks/use-auth';
 import { SectionLabel } from '@/components/ui/section-label';
 import { Panel } from '@/components/ui/panel';
+import { ErrorCard } from '@/components/ui/error-card';
 import type { SimulationSnapshot } from '@/lib/db/schema';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useAuthRestore } from '@/hooks/use-auth-restore';
@@ -229,6 +230,7 @@ export default function PortfolioPage() {
   const { user, token, loading } = useAuth();
   const [snapshots, setSnapshots] = useState<SimulationSnapshot[]>([]);
   const [fetching, setFetching]   = useState(false);
+  const [snapError, setSnapError] = useState<string | null>(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   const refreshSnapshots = useCallback(() => {
@@ -238,12 +240,16 @@ export default function PortfolioPage() {
   useEffect(() => {
     if (!user || !token) return;
     setFetching(true);
+    setSnapError(null);
     fetch('/api/snapshots', {
       headers: { authorization: `Bearer ${token}` },
     })
-      .then((r) => r.json())
+      .then((r) => {
+        if (!r.ok) throw new Error(`Could not load saved simulations (HTTP ${r.status})`);
+        return r.json();
+      })
       .then((d) => setSnapshots(d.snapshots ?? []))
-      .catch(() => {})
+      .catch((e) => setSnapError(e instanceof Error ? e.message : 'Could not load saved simulations'))
       .finally(() => setFetching(false));
   }, [user, token, refreshTrigger]);
 
@@ -324,6 +330,8 @@ export default function PortfolioPage() {
               <p style={{ color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)', fontSize: 'var(--text-small)' }}>
                 FETCHING SNAPSHOTS…
               </p>
+            ) : snapError ? (
+              <ErrorCard message={snapError} onRetry={refreshSnapshots} />
             ) : snapshots.length === 0 ? (
               <Panel label="NO SAVED SIMULATIONS">
                 <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: 'var(--text-small)', lineHeight: 1.6 }}>

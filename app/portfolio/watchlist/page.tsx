@@ -5,12 +5,13 @@ import Link from 'next/link';
 import { useAuth } from '@/hooks/use-auth';
 import { useNotificationsContext } from '@/providers/notifications-provider';
 import { Panel } from '@/components/ui/panel';
+import { ErrorCard } from '@/components/ui/error-card';
 import { NewsDigest } from '@/components/notifications/news-digest';
 
 export default function WatchlistPage() {
   const { user, loading: authLoading } = useAuth();
   const notifications = useNotificationsContext();
-  const { watchlist, alerts, removeFromWatchlist, deleteAlert } = notifications;
+  const { watchlist, alerts, error, refresh, removeFromWatchlist, deleteAlert } = notifications;
 
   const [activeTab, setActiveTab] = useState<'watchlist' | 'alerts' | 'digest'>('watchlist');
 
@@ -104,6 +105,13 @@ export default function WatchlistPage() {
           NEWS DIGEST
         </button>
       </div>
+
+      {/* Fetch error — shown instead of misleading empty lists */}
+      {error && (
+        <div style={{ marginBottom: '1.5rem' }}>
+          <ErrorCard message={error} onRetry={refresh} />
+        </div>
+      )}
 
       {/* Watchlist tab */}
       {activeTab === 'watchlist' && (
