@@ -7,7 +7,6 @@ import { SymbolPicker } from '@/components/symbol-picker';
 import { ComparisonTable } from '@/components/comparison-table';
 import { CorrelationHeatmap } from '@/components/correlation-heatmap';
 import { PortfolioSimulator } from '@/components/portfolio-simulator';
-import { CompareGate } from '@/components/compare-gate';
 import { normalizeTicker } from '@/lib/utils/tickers';
 import { getName } from '@/lib/data/nifty50';
 
@@ -180,7 +179,6 @@ export default async function ComparePage({
 
   return (
     <main className="min-h-screen" style={{ background: 'var(--bg-canvas)' }}>
-      <CompareGate symbolCount={data.symbols.length} />
       <div className="max-w-5xl mx-auto px-8 py-12 space-y-14">
 
         {/* Header */}

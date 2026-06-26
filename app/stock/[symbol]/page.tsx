@@ -13,7 +13,6 @@ import type { Thesis, ValidationResult } from '@/lib/ai/schemas';
 import { getBaseUrl } from '@/lib/utils';
 import { Suspense } from 'react';
 import { ThesisLoading } from '@/components/thesis-loading';
-import { ThesisGate } from '@/components/thesis-gate';
 
 interface KeyMetrics {
   currentPrice: number;
@@ -339,7 +338,6 @@ export default async function StockPage({
 
   return (
     <main className="min-h-screen" style={{ background: 'var(--bg-canvas)' }}>
-      <ThesisGate symbol={symbol} />
       <div className="max-w-4xl mx-auto px-8 py-12">
         <Suspense fallback={<ThesisLoading />}>
           <ThesisSection symbol={symbol} />

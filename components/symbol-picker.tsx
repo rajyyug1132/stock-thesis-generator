@@ -3,7 +3,8 @@
 import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { NIFTY_50, type Sector } from '@/lib/data/nifty50';
-import { useUser } from '@/hooks/use-user';
+
+const MAX = 5;
 
 const SECTOR_LABELS: Record<Sector, string> = {
   IT: 'IT',
@@ -27,8 +28,6 @@ interface SymbolPickerProps {
 
 export function SymbolPicker({ initialSymbols = [] }: SymbolPickerProps) {
   const router = useRouter();
-  const { limits, showUpgrade } = useUser();
-  const max = limits.compareSize;
   const [selected, setSelected] = useState<string[]>(initialSymbols);
   const [query, setQuery] = useState('');
   const [open, setOpen] = useState(false);
@@ -54,16 +53,11 @@ export function SymbolPicker({ initialSymbols = [] }: SymbolPickerProps) {
   }, [query]);
 
   function toggle(symbol: string) {
-    if (selected.includes(symbol)) {
-      setSelected((prev) => prev.filter((s) => s !== symbol));
-      return;
-    }
-    if (selected.length >= max) {
-      // Free tier caps the comparison — prompt to upgrade instead of capping silently.
-      showUpgrade('compare');
-      return;
-    }
-    setSelected((prev) => [...prev, symbol]);
+    setSelected((prev) => {
+      if (prev.includes(symbol)) return prev.filter((s) => s !== symbol);
+      if (prev.length >= MAX) return prev;
+      return [...prev, symbol];
+    });
   }
 
   function remove(symbol: string) {
@@ -103,7 +97,7 @@ export function SymbolPicker({ initialSymbols = [] }: SymbolPickerProps) {
             </span>
           ))}
           <span className="text-xs text-[var(--text-tertiary)] self-center font-mono">
-            {selected.length}/{max} selected
+            {selected.length}/{MAX} selected
           </span>
         </div>
       )}
@@ -134,12 +128,16 @@ export function SymbolPicker({ initialSymbols = [] }: SymbolPickerProps) {
                 </div>
                 {stocks.map((stock) => {
                   const isSelected = selected.includes(stock.symbol);
+                  const isDisabled = !isSelected && selected.length >= MAX;
                   return (
                     <button
                       key={stock.symbol}
                       onClick={() => { toggle(stock.symbol); setQuery(''); }}
+                      disabled={isDisabled}
                       className={`flex w-full items-center justify-between px-4 py-2 text-sm transition-colors ${
-                        isSelected
+                        isDisabled
+                          ? 'opacity-40 cursor-not-allowed'
+                          : isSelected
                           ? 'bg-[var(--accent-muted)] text-[var(--accent)]'
                           : 'hover:bg-[#1a1c1e] text-[var(--text-primary)]'
                       }`}
