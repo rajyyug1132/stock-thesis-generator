@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import useSWR from 'swr';
 import type { WatchlistItem } from '@/lib/db/schema';
 import type { NewsItem } from '@/lib/data/news';
 
@@ -12,49 +12,36 @@ interface NewsDigestProps {
   watchlist: WatchlistItem[];
 }
 
+// Fetch news for every watchlist symbol in parallel, merge, dedupe by url,
+// and sort newest-first. Keyed by the sorted symbol list so SWR refetches
+// only when the watchlist actually changes.
+async function fetchDigest(symbolsCsv: string): Promise<NewsDigestItem[]> {
+  const symbols = symbolsCsv.split(',').filter(Boolean);
+  const results = await Promise.allSettled(
+    symbols.map((symbol) =>
+      fetch(`/api/news/${encodeURIComponent(symbol)}`)
+        .then((r) => r.json())
+        .then((d) => ({ symbol, items: (d.items ?? []) as NewsItem[] }))
+    )
+  );
+  const merged: NewsDigestItem[] = [];
+  for (const r of results) {
+    if (r.status === 'fulfilled') {
+      for (const item of r.value.items) merged.push({ ...item, symbol: r.value.symbol });
+    }
+  }
+  const seen = new Set<string>();
+  return merged
+    .filter((i) => (seen.has(i.url) ? false : (seen.add(i.url), true)))
+    .sort((a, b) => Date.parse(b.publishedAt) - Date.parse(a.publishedAt));
+}
+
 export function NewsDigest({ watchlist }: NewsDigestProps) {
-  const [items, setItems]       = useState<NewsDigestItem[]>([]);
-  const [loading, setLoading]   = useState(false);
-  const [fetched, setFetched]   = useState<Set<string>>(new Set());
-
-  useEffect(() => {
-    if (!watchlist.length) return;
-    const newSymbols = watchlist
-      .map((w) => w.symbol)
-      .filter((s) => !fetched.has(s));
-    if (!newSymbols.length) return;
-
-    setLoading(true);
-    setFetched((prev) => new Set([...prev, ...newSymbols]));
-
-    Promise.allSettled(
-      newSymbols.map((symbol) =>
-        fetch(`/api/news/${encodeURIComponent(symbol)}`)
-          .then((r) => r.json())
-          .then((d) => ({ symbol, items: d.items ?? [] as NewsItem[] }))
-      )
-    ).then((results) => {
-      const newItems: NewsDigestItem[] = [];
-      for (const r of results) {
-        if (r.status === 'fulfilled') {
-          const { symbol, items: newsItems } = r.value;
-          for (const item of newsItems as NewsItem[]) {
-            newItems.push({ ...item, symbol });
-          }
-        }
-      }
-      // Sort by publishedAt descending
-      newItems.sort((a, b) => Date.parse(b.publishedAt) - Date.parse(a.publishedAt));
-      setItems((prev) => {
-        const existingUrls = new Set(prev.map((i) => i.url));
-        const fresh = newItems.filter((i) => !existingUrls.has(i.url));
-        return [...prev, ...fresh].sort(
-          (a, b) => Date.parse(b.publishedAt) - Date.parse(a.publishedAt)
-        );
-      });
-      setLoading(false);
-    });
-  }, [watchlist, fetched]);
+  const symbolsKey = watchlist.map((w) => w.symbol).sort().join(',');
+  const { data: items = [], isLoading: loading } = useSWR(
+    symbolsKey ? ['news-digest', symbolsKey] : null,
+    ([, syms]: [string, string]) => fetchDigest(syms),
+  );
 
   if (!watchlist.length) {
     return (

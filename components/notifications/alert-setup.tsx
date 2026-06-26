@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import type { NotificationsState } from '@/hooks/use-notifications';
+import { useUser } from '@/hooks/use-user';
 
 interface AlertSetupProps {
   symbol:        string;
@@ -10,7 +11,8 @@ interface AlertSetupProps {
 }
 
 export function AlertSetup({ symbol, currentPrice, notifications }: AlertSetupProps) {
-  const { alerts, createAlert, deleteAlert, isWatched, addToWatchlist, removeFromWatchlist } = notifications;
+  const { watchlist, alerts, createAlert, deleteAlert, isWatched, addToWatchlist, removeFromWatchlist } = notifications;
+  const { isPaid, limits, showUpgrade } = useUser();
 
   const [targetPrice,  setTargetPrice]  = useState(currentPrice?.toFixed(2) ?? '');
   const [direction,    setDirection]    = useState<'above' | 'below'>('above');
@@ -55,6 +57,10 @@ export function AlertSetup({ symbol, currentPrice, notifications }: AlertSetupPr
       if (watched) {
         await removeFromWatchlist(symbol);
       } else {
+        if (!isPaid && watchlist.length >= limits.watchlistSize) {
+          showUpgrade('watchlist');
+          return;
+        }
         await addToWatchlist(symbol);
       }
     } catch {

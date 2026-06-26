@@ -1,7 +1,9 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
+import useSWR from 'swr';
 import type { PriceAlert, WatchlistItem } from '@/lib/db/schema';
+import { track } from '@/lib/analytics';
 
 export interface TriggeredAlert {
   id:           string;
@@ -35,104 +37,92 @@ function authHeaders(token: string) {
   return { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
 }
 
+// SWR fetcher — loads watchlist + alerts together. Key is ['notifications', token].
+async function fetchNotifications([, token]: [string, string]) {
+  const [wlRes, alRes] = await Promise.all([
+    fetch('/api/notifications/watchlist', { headers: authHeaders(token) }),
+    fetch('/api/notifications/alerts',    { headers: authHeaders(token) }),
+  ]);
+  if (!wlRes.ok || !alRes.ok) throw new Error('Could not load your watchlist and alerts.');
+  const [wl, al] = await Promise.all([wlRes.json(), alRes.json()]);
+  return {
+    watchlist: (wl.watchlist ?? []) as WatchlistItem[],
+    alerts:    (al.alerts ?? []) as PriceAlert[],
+  };
+}
+
 export function useNotifications(token: string | null): NotificationsState {
-  const [watchlist, setWatchlist]     = useState<WatchlistItem[]>([]);
-  const [alerts, setAlerts]           = useState<PriceAlert[]>([]);
+  // ── Watchlist + alerts: SWR is the source of truth ─────────────────────────
+  const { data, error, isLoading, mutate } = useSWR(
+    token ? ['notifications', token] : null,
+    fetchNotifications,
+  );
+  const watchlist = data?.watchlist ?? [];
+  const alerts = data?.alerts ?? [];
+
+  // ── Triggered-alert state (client-only, fed by the poll below) ──────────────
   const [triggered, setTriggered]     = useState<TriggeredAlert[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
-  const [loading, setLoading]         = useState(false);
-  const [error, setError]             = useState<string | null>(null);
   const pollRef                       = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // ── Fetch watchlist + alerts ──────────────────────────────────────────────
-
-  const fetchAll = useCallback(async () => {
-    if (!token) return;
-    setLoading(true);
-    setError(null);
-    try {
-      const [wlRes, alRes] = await Promise.all([
-        fetch('/api/notifications/watchlist', { headers: authHeaders(token) }),
-        fetch('/api/notifications/alerts',    { headers: authHeaders(token) }),
-      ]);
-      if (!wlRes.ok || !alRes.ok) throw new Error('Could not load your watchlist and alerts.');
-      const [wl, al] = await Promise.all([wlRes.json(), alRes.json()]);
-      setWatchlist(wl.watchlist ?? []);
-      setAlerts(al.alerts ?? []);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Could not load your watchlist and alerts.');
-    } finally {
-      setLoading(false);
-    }
-  }, [token]);
-
-  // ── Check for triggered alerts ────────────────────────────────────────────
-
+  // ── Poll for triggered alerts (side-effect: fires browser notifications) ────
   const checkAlerts = useCallback(async () => {
     if (!token) return;
     try {
       const res = await fetch('/api/notifications/check', { headers: authHeaders(token) });
       if (!res.ok) return;
-      const data: { triggered: TriggeredAlert[] } = await res.json();
-      if (data.triggered?.length) {
+      const payload: { triggered: TriggeredAlert[] } = await res.json();
+      if (payload.triggered?.length) {
+        let fired = false;
         setTriggered((prev) => {
           const existingIds = new Set(prev.map((a) => a.id));
-          const newOnes = data.triggered.filter((a) => !existingIds.has(a.id));
+          const newOnes = payload.triggered.filter((a) => !existingIds.has(a.id));
           if (!newOnes.length) return prev;
+          fired = true;
           setUnreadCount((c) => c + newOnes.length);
-          // Fire browser notification for each new trigger
           newOnes.forEach((a) => fireBrowserNotification(a));
           return [...prev, ...newOnes];
         });
-        // Refresh alerts list (triggered ones are now marked)
-        fetch('/api/notifications/alerts', { headers: authHeaders(token) })
-          .then((r) => r.json())
-          .then((d) => setAlerts(d.alerts ?? []))
-          .catch(() => {});
+        // A trigger flips alert.triggered server-side — revalidate the list.
+        if (fired) mutate();
       }
     } catch {
       // Non-critical
     }
-  }, [token]);
-
-  // ── Load on mount + poll ──────────────────────────────────────────────────
+  }, [token, mutate]);
 
   useEffect(() => {
     if (!token) return;
-    fetchAll();
     checkAlerts();
-
     pollRef.current = setInterval(checkAlerts, POLL_INTERVAL_MS);
     return () => {
       if (pollRef.current) clearInterval(pollRef.current);
     };
-  }, [token, fetchAll, checkAlerts]);
+  }, [token, checkAlerts]);
 
-  // ── Actions ───────────────────────────────────────────────────────────────
-
+  // ── Actions — write, then revalidate via SWR ────────────────────────────────
   const addToWatchlist = useCallback(async (symbol: string) => {
     if (!token) return;
+    track('watchlist_add', { symbol });
     const res = await fetch('/api/notifications/watchlist', {
       method:  'POST',
       headers: authHeaders(token),
       body:    JSON.stringify({ symbol }),
     });
-    const data = await res.json();
-    if (res.ok) {
-      setWatchlist((prev) => [...prev, data.item]);
-    } else {
-      throw new Error(data.error ?? 'Failed to add to watchlist');
-    }
-  }, [token]);
+    const d = await res.json();
+    if (!res.ok) throw new Error(d.error ?? 'Failed to add to watchlist');
+    mutate();
+  }, [token, mutate]);
 
   const removeFromWatchlist = useCallback(async (symbol: string) => {
     if (!token) return;
+    track('watchlist_remove', { symbol });
     await fetch(`/api/notifications/watchlist?symbol=${encodeURIComponent(symbol)}`, {
       method:  'DELETE',
       headers: authHeaders(token),
     });
-    setWatchlist((prev) => prev.filter((item) => item.symbol !== symbol));
-  }, [token]);
+    mutate();
+  }, [token, mutate]);
 
   const createAlert = useCallback(async (
     symbol: string,
@@ -141,27 +131,26 @@ export function useNotifications(token: string | null): NotificationsState {
     label?: string,
   ) => {
     if (!token) return;
+    track('alert_create', { symbol, direction });
     const res = await fetch('/api/notifications/alerts', {
       method:  'POST',
       headers: authHeaders(token),
       body:    JSON.stringify({ symbol, targetPrice, direction, label }),
     });
-    const data = await res.json();
-    if (res.ok) {
-      setAlerts((prev) => [...prev, data.alert]);
-    } else {
-      throw new Error(data.error ?? 'Failed to create alert');
-    }
-  }, [token]);
+    const d = await res.json();
+    if (!res.ok) throw new Error(d.error ?? 'Failed to create alert');
+    mutate();
+  }, [token, mutate]);
 
   const deleteAlert = useCallback(async (id: string) => {
     if (!token) return;
+    track('alert_delete', { id });
     await fetch(`/api/notifications/alerts?id=${encodeURIComponent(id)}`, {
       method:  'DELETE',
       headers: authHeaders(token),
     });
-    setAlerts((prev) => prev.filter((a) => a.id !== id));
-  }, [token]);
+    mutate();
+  }, [token, mutate]);
 
   const markAllRead = useCallback(() => setUnreadCount(0), []);
 
@@ -175,9 +164,9 @@ export function useNotifications(token: string | null): NotificationsState {
     alerts,
     triggered,
     unreadCount,
-    loading,
-    error,
-    refresh: fetchAll,
+    loading: isLoading,
+    error: error ? (error as Error).message : null,
+    refresh: async () => { await mutate(); },
     addToWatchlist,
     removeFromWatchlist,
     createAlert,

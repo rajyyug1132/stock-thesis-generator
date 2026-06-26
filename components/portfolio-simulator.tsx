@@ -15,6 +15,8 @@ import { DualFanChart } from '@/components/stress/dual-fan-chart';
 import { DualRiskMetrics } from '@/components/stress/dual-risk-metrics';
 import { ShockRationale } from '@/components/stress/shock-rationale';
 import { equalWeight, minVariance } from '@/lib/sim/portfolio';
+import { track } from '@/lib/analytics';
+import { useUser } from '@/hooks/use-user';
 import type { SimInput } from '@/lib/sim/types';
 
 interface PortfolioSimulatorProps {
@@ -41,6 +43,7 @@ export function PortfolioSimulator({
   horizonDays: defaultHorizon = 63,
   numPaths = 5000,
 }: PortfolioSimulatorProps) {
+  const { isPaid, showUpgrade } = useUser();
   const [preset, setPreset] = useState<PresetName>('equal');
   const [weights, setWeights] = useState<number[]>(() => equalWeight(symbols.length));
   const [horizon, setHorizon] = useState(defaultHorizon);
@@ -80,8 +83,23 @@ export function PortfolioSimulator({
     run(input);
   }, [symbols, initialPrices, weights, dailyMeans, covariance, horizon, numPaths, run, clearStress]);
 
-  // Auto-run on first mount
-  useEffect(() => { runSim(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  // Auto-run on first mount — paid only (free users see the upgrade gate below)
+  useEffect(() => { if (isPaid) runSim(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Paywall: portfolio simulation is a Pro feature ──────────────────────────
+  if (!isPaid) {
+    return (
+      <div>
+        <p style={{ color: 'var(--text-secondary)', fontSize: 'var(--text-body)', lineHeight: 1.6, margin: '0 0 16px' }}>
+          The portfolio simulator — correlated Monte Carlo with fan charts and risk metrics — is a{' '}
+          <strong style={{ color: 'var(--accent)' }}>Pro</strong> feature.
+        </p>
+        <button type="button" onClick={() => showUpgrade('portfolio_sim')} className="btn btn-primary">
+          UPGRADE TO PRO
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-5">
@@ -110,7 +128,7 @@ export function PortfolioSimulator({
             </button>
           ))}
           <button
-            onClick={runSim}
+            onClick={() => { track('sim_run', { preset, horizon, symbols: symbols.length }); runSim(); }}
             disabled={loading}
             style={{
               marginLeft: '0.75rem',

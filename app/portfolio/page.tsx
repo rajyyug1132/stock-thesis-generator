@@ -1,11 +1,14 @@
 'use client';
 
 import { useEffect, useState, useCallback, Suspense } from 'react';
+import useSWR from 'swr';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/use-auth';
+import { authedFetcher } from '@/lib/swr';
 import { SectionLabel } from '@/components/ui/section-label';
 import { Panel } from '@/components/ui/panel';
 import { ErrorCard } from '@/components/ui/error-card';
+import { track } from '@/lib/analytics';
 import type { SimulationSnapshot } from '@/lib/db/schema';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useAuthRestore } from '@/hooks/use-auth-restore';
@@ -156,6 +159,7 @@ function SnapshotCard({ snapshot, onDelete }: { snapshot: SimulationSnapshot; on
       {/* Restore link */}
       <Link
         href={href}
+        onClick={() => track('snapshot_restore', { symbols: snapshot.symbols.length })}
         style={{
           fontFamily: 'var(--font-mono)', fontSize: 'var(--text-micro)',
           letterSpacing: '0.1em', color: 'var(--accent)',
@@ -228,38 +232,22 @@ function RestoreBanner({ onRestoreComplete }: RestoreBannerProps) {
 /* ── Portfolio Page ────────────────────────────────────────────────────────── */
 export default function PortfolioPage() {
   const { user, token, loading } = useAuth();
-  const [snapshots, setSnapshots] = useState<SimulationSnapshot[]>([]);
-  const [fetching, setFetching]   = useState(false);
-  const [snapError, setSnapError] = useState<string | null>(null);
-  const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const { data, error, isLoading, mutate } = useSWR<{ snapshots: SimulationSnapshot[] }>(
+    user && token ? ['/api/snapshots', token] : null,
+    authedFetcher,
+  );
+  const snapshots = data?.snapshots ?? [];
 
-  const refreshSnapshots = useCallback(() => {
-    setRefreshTrigger((prev) => prev + 1);
-  }, []);
-
-  useEffect(() => {
-    if (!user || !token) return;
-    setFetching(true);
-    setSnapError(null);
-    fetch('/api/snapshots', {
-      headers: { authorization: `Bearer ${token}` },
-    })
-      .then((r) => {
-        if (!r.ok) throw new Error(`Could not load saved simulations (HTTP ${r.status})`);
-        return r.json();
-      })
-      .then((d) => setSnapshots(d.snapshots ?? []))
-      .catch((e) => setSnapError(e instanceof Error ? e.message : 'Could not load saved simulations'))
-      .finally(() => setFetching(false));
-  }, [user, token, refreshTrigger]);
+  const refreshSnapshots = useCallback(() => { mutate(); }, [mutate]);
 
   async function handleDelete(id: string) {
     if (!token) return;
+    track('snapshot_delete', { id });
     await fetch(`/api/snapshots/${id}`, {
       method: 'DELETE',
       headers: { authorization: `Bearer ${token}` },
     });
-    setSnapshots((prev) => prev.filter((s) => s.id !== id));
+    mutate();
   }
 
   return (
@@ -326,12 +314,12 @@ export default function PortfolioPage() {
             </div>
 
             {/* Snapshots grid */}
-            {fetching ? (
+            {isLoading ? (
               <p style={{ color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)', fontSize: 'var(--text-small)' }}>
                 FETCHING SNAPSHOTS…
               </p>
-            ) : snapError ? (
-              <ErrorCard message={snapError} onRetry={refreshSnapshots} />
+            ) : error ? (
+              <ErrorCard message="Could not load your saved simulations." onRetry={refreshSnapshots} />
             ) : snapshots.length === 0 ? (
               <Panel label="NO SAVED SIMULATIONS">
                 <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: 'var(--text-small)', lineHeight: 1.6 }}>

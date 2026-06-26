@@ -1,8 +1,6 @@
-'use client';
-
-import { useEffect, useState } from 'react';
 import { SectionLabel } from '@/components/ui/section-label';
 import { Panel } from '@/components/ui/panel';
+import { getBaseUrl } from '@/lib/utils';
 import type { Thesis } from '@/lib/ai/schemas';
 
 interface SharedData {
@@ -11,6 +9,19 @@ interface SharedData {
   createdAt: string;
   expiresAt: string;
   daysLeft: number;
+}
+
+async function fetchShared(token: string): Promise<SharedData | { error: string }> {
+  try {
+    const res = await fetch(`${getBaseUrl()}/api/share/thesis/${token}`, { cache: 'no-store' });
+    const data = await res.json();
+    if (!res.ok || data.error) {
+      return { error: data.error ?? `Failed to load shared thesis (HTTP ${res.status})` };
+    }
+    return data as SharedData;
+  } catch {
+    return { error: 'Failed to load shared thesis' };
+  }
 }
 
 function ThesisSectionView({ thesis }: { thesis: Thesis }) {
@@ -100,30 +111,11 @@ function ThesisSectionView({ thesis }: { thesis: Thesis }) {
   );
 }
 
-export default function SharePage({ params }: { params: Promise<{ token: string }> }) {
-  const [token, setToken] = useState<string>('');
-  const [data, setData] = useState<SharedData | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    params.then(({ token: t }) => setToken(t));
-  }, [params]);
-
-  useEffect(() => {
-    if (!token) return;
-    fetch(`/api/share/thesis/${token}`)
-      .then((r) => r.json())
-      .then((d) => {
-        if (d.error) {
-          setError(d.error);
-        } else {
-          setData(d);
-        }
-      })
-      .catch(() => setError('Failed to load shared thesis'))
-      .finally(() => setLoading(false));
-  }, [token]);
+export default async function SharePage({ params }: { params: Promise<{ token: string }> }) {
+  const { token } = await params;
+  const result = await fetchShared(token);
+  const error = 'error' in result ? result.error : null;
+  const data = 'error' in result ? null : result;
 
   return (
     <main className="min-h-screen" style={{ background: 'var(--bg-canvas)' }}>
@@ -146,12 +138,6 @@ export default function SharePage({ params }: { params: Promise<{ token: string 
       </div>
 
       <div className="column" style={{ padding: '48px 32px 80px', maxWidth: 900 }}>
-        {loading && (
-          <p style={{ color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)', fontSize: 'var(--text-small)' }}>
-            LOADING SHARED THESIS…
-          </p>
-        )}
-
         {error && (
           <Panel label="ERROR">
             <p style={{ color: 'var(--rust)', margin: 0, fontFamily: 'var(--font-mono)', fontSize: 'var(--text-small)' }}>

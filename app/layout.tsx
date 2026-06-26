@@ -4,7 +4,9 @@ import './globals.css';
 import { Geist, Geist_Mono, Fraunces } from 'next/font/google';
 import { cn } from '@/lib/utils';
 import { Header } from '@/components/Header';
+import { AnalyticsTracker } from '@/components/analytics-tracker';
 import { ThemeProvider } from '@/components/theme-provider';
+import { UpgradeProvider } from '@/providers/upgrade-provider';
 import { StockStreamProvider } from '@/providers/stock-stream-provider';
 import { NotificationsProvider } from '@/providers/notifications-provider';
 
@@ -50,14 +52,19 @@ export default function RootLayout({
       </head>
       <body className="min-h-screen">
         <ThemeProvider>
-          <StockStreamProvider>
-            <NotificationsProvider>
-              <Suspense fallback={null}>
-                <Header />
-              </Suspense>
-              {children}
-            </NotificationsProvider>
-          </StockStreamProvider>
+          <UpgradeProvider>
+            <StockStreamProvider>
+              <NotificationsProvider>
+                <Suspense fallback={null}>
+                  <Header />
+                </Suspense>
+                <Suspense fallback={null}>
+                  <AnalyticsTracker />
+                </Suspense>
+                {children}
+              </NotificationsProvider>
+            </StockStreamProvider>
+          </UpgradeProvider>
         </ThemeProvider>
       </body>
     </html>

@@ -7,6 +7,7 @@ import { useNotificationsContext } from '@/providers/notifications-provider';
 import { Panel } from '@/components/ui/panel';
 import { ErrorCard } from '@/components/ui/error-card';
 import { NewsDigest } from '@/components/notifications/news-digest';
+import { track } from '@/lib/analytics';
 
 export default function WatchlistPage() {
   const { user, loading: authLoading } = useAuth();
@@ -101,7 +102,7 @@ export default function WatchlistPage() {
         <button style={tabStyle(activeTab === 'alerts')} onClick={() => setActiveTab('alerts')}>
           PRICE ALERTS ({alerts.filter((a) => !a.triggered).length})
         </button>
-        <button style={tabStyle(activeTab === 'digest')} onClick={() => setActiveTab('digest')}>
+        <button style={tabStyle(activeTab === 'digest')} onClick={() => { track('news_digest_view'); setActiveTab('digest'); }}>
           NEWS DIGEST
         </button>
       </div>

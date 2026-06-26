@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useTheme, type ThemeChoice } from './theme-provider';
+import { track } from '@/lib/analytics';
 
 const OPTIONS: { value: ThemeChoice; label: string; hint: string }[] = [
   { value: 'light',  label: 'LIGHT', hint: 'Light theme' },
@@ -36,7 +37,7 @@ export function ThemeToggle() {
           <button
             key={opt.value}
             type="button"
-            onClick={() => setChoice(opt.value)}
+            onClick={() => { track('theme_change', { choice: opt.value }); setChoice(opt.value); }}
             aria-pressed={active}
             title={opt.hint}
             style={{

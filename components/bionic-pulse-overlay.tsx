@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { AnomalyEvent } from '@/lib/stream/anomalyDetector';
@@ -15,6 +15,9 @@ type PulseInstance = {
 export function BioPulseOverlay({ anomaly }: { anomaly: AnomalyEvent | null }) {
   const [pulses, setPulses] = useState<PulseInstance[]>([]);
   const [mounted, setMounted] = useState(false);
+  // Monotonic counter so each pulse gets a unique key even when the same
+  // anomaly fires the effect twice (e.g. React StrictMode in dev).
+  const pulseSeq = useRef(0);
 
   // Only mount on client — never SSR
   useEffect(() => { setMounted(true); }, []);
@@ -34,7 +37,7 @@ export function BioPulseOverlay({ anomaly }: { anomaly: AnomalyEvent | null }) {
     }
 
     const pulse: PulseInstance = {
-      id: anomaly.id,
+      id: `${anomaly.id}-${pulseSeq.current++}`,
       x, y,
       colorBase: anomaly.type === 'spike_up'
         ? 'rgba(168, 199, 186,'

@@ -7,6 +7,7 @@ import { useEffect, useRef, useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { SectionLabel } from '@/components/ui/section-label';
 import { ALL_STOCKS } from '@/lib/data/nifty50';
+import { track } from '@/lib/analytics';
 import { useAuth } from '@/hooks/use-auth';
 import { useStockStream } from '@/providers/stock-stream-provider';
 import { BioPulseOverlay } from '@/components/bionic-pulse-overlay';
@@ -265,6 +266,11 @@ export function Header() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [router, showCommandPalette]);
 
+  // Track command palette opens (feature usage)
+  useEffect(() => {
+    if (showCommandPalette) track('command_palette_open');
+  }, [showCommandPalette]);
+
   // Command palette suggestions
   const suggestions = useMemo(() => {
     const q = paletteQuery.toLowerCase().trim();
@@ -308,6 +314,7 @@ export function Header() {
         action: async () => {
           if (!name || !symbolsParam) return;
           if (!user || !token) { router.push('/portfolio'); return; }
+          track('snapshot_save', { symbols: symbolsParam.split(',').filter(Boolean).length });
           setSaveStatus('saving');
           try {
             const symbols = symbolsParam.split(',').filter(Boolean);

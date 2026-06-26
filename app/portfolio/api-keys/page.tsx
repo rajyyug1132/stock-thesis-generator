@@ -1,11 +1,13 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useState } from 'react';
+import useSWR from 'swr';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/use-auth';
 import { Panel } from '@/components/ui/panel';
 import { SectionLabel } from '@/components/ui/section-label';
 import { Pill } from '@/components/ui/pill';
+import { track } from '@/lib/analytics';
 
 interface ApiKey {
   id: string;
@@ -57,10 +59,21 @@ function CopyButton({ text }: { text: string }) {
   );
 }
 
+// API keys use an { ok, data, error } envelope — throw on ok:false so SWR
+// surfaces it as an error, not silent empty data.
+const keysFetcher = async ([url, token]: [string, string]): Promise<ApiKey[]> => {
+  const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+  const json = await res.json();
+  if (!json.ok) throw new Error(json.error?.message ?? 'Failed to load keys');
+  return json.data.keys as ApiKey[];
+};
+
 export default function ApiKeysPage() {
   const { user, token, loading: authLoading } = useAuth();
-  const [keys, setKeys] = useState<ApiKey[]>([]);
-  const [loading, setLoading] = useState(false);
+  const { data: keys = [], error: loadError, isLoading: loading, mutate } = useSWR<ApiKey[]>(
+    token ? ['/api/v2/keys', token] : null,
+    keysFetcher,
+  );
   const [error, setError] = useState<string | null>(null);
   const [newKey, setNewKey] = useState<NewKey | null>(null);
   const [creating, setCreating] = useState(false);
@@ -68,30 +81,9 @@ export default function ApiKeysPage() {
   const [showForm, setShowForm] = useState(false);
   const [revoking, setRevoking] = useState<string | null>(null);
 
-  const fetchKeys = useCallback(async () => {
-    if (!token) return;
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await fetch('/api/v2/keys', {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const json = await res.json();
-      if (!json.ok) throw new Error(json.error?.message ?? 'Failed to load keys');
-      setKeys(json.data.keys);
-    } catch (e) {
-      setError((e as Error).message);
-    } finally {
-      setLoading(false);
-    }
-  }, [token]);
-
-  useEffect(() => {
-    if (token) fetchKeys();
-  }, [token, fetchKeys]);
-
   async function createKey() {
     if (!token || !newKeyName.trim()) return;
+    track('apikey_create');
     setCreating(true);
     setError(null);
     try {
@@ -108,7 +100,7 @@ export default function ApiKeysPage() {
       setNewKey(json.data);
       setNewKeyName('');
       setShowForm(false);
-      await fetchKeys();
+      await mutate();
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -118,6 +110,7 @@ export default function ApiKeysPage() {
 
   async function revokeKey(id: string) {
     if (!token) return;
+    track('apikey_revoke');
     setRevoking(id);
     setError(null);
     try {
@@ -127,7 +120,7 @@ export default function ApiKeysPage() {
       });
       const json = await res.json();
       if (!json.ok) throw new Error(json.error?.message ?? 'Failed to revoke key');
-      await fetchKeys();
+      await mutate();
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -357,6 +350,12 @@ export default function ApiKeysPage() {
             >
               LOADING…
             </div>
+          ) : loadError ? (
+            <Panel>
+              <p style={{ color: 'var(--down)', fontSize: 13, fontFamily: 'var(--font-mono)', letterSpacing: '0.05em' }}>
+                Could not load your API keys. Refresh to try again.
+              </p>
+            </Panel>
           ) : activeKeys.length === 0 ? (
             <Panel>
               <p style={{ color: 'var(--text-tertiary)', fontSize: 13, fontFamily: 'var(--font-mono)', letterSpacing: '0.05em' }}>
