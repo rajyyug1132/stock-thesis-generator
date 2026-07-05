@@ -1,5 +1,7 @@
 # Editorial Quant — AI-Grounded Stock Thesis Engine
 
+![Next.js 16](https://img.shields.io/badge/Next.js-16-black?logo=next.js) ![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178c6?logo=typescript&logoColor=white) ![Tests](https://img.shields.io/badge/tests-26%20passing-4ade80) ![Gemini](https://img.shields.io/badge/AI-Gemini%202.5%20Pro%20%2B%20Flash-8ecfb8) ![License](https://img.shields.io/badge/license-ISC-6db89e)
+
 I built this because every "AI stock analyzer" I tried just asks an LLM to talk about a company and hopes it doesn't make up numbers. This one fetches real market data first, shows it to you, then writes the analysis from those numbers and nothing else.
 
 **Live:** [stock-thesis-generator-mae5.vercel.app](https://stock-thesis-generator-mae5.vercel.app) · **Scope:** Nifty 50 only
@@ -17,6 +19,28 @@ Type a Nifty 50 ticker on the home page or navigate to `/stock/RELIANCE`. Here's
 **The grounding score** at the bottom of every thesis is the percentage of claims the verifier could confirm against the raw data. It's not a quality rating — it's a transparency measure.
 
 There's also a compare page where you can pick 2–5 Nifty 50 stocks and run a correlated Monte Carlo simulation (10,000 paths, GBM with a real covariance matrix built from the price history). You can drag the portfolio weights, switch between time horizons, and type a natural-language stress scenario like "RBI raises rates 50bps" — the app parses that into parameter shocks and re-runs the simulation so you can see base case vs shocked side by side.
+
+---
+
+## Architecture at a glance
+
+```mermaid
+flowchart LR
+    U[User] --> N[Next.js 16<br/>App Router]
+    N --> C{Upstash Redis<br/>cache hit?}
+    C -- hit --> UI[Render thesis]
+    C -- miss --> Y[Yahoo Finance<br/>prices + fundamentals]
+    Y --> G1[Gemini 2.5 Pro<br/>writes structured thesis]
+    G1 --> G2[Gemini Flash<br/>verifies every numeric claim]
+    G2 --> S[(Grounding score<br/>% claims verified)]
+    S --> UI
+    G1 -. quota exhausted .-> F[Fallback cascade<br/>DeepSeek → OpenRouter → Groq]
+    N --> W[Web Worker<br/>Monte Carlo GBM<br/>10k paths, Float64Array]
+    W --> UI
+    N --> DB[(Supabase Postgres<br/>snapshots · watchlists · alerts)]
+```
+
+Two-pass grounding is the core idea: one model writes, a second model checks every number in the output against the raw data it was given. The verifier's output — not the writer's confidence — is what the UI displays.
 
 ---
 
@@ -58,6 +82,22 @@ The architecture decisions were mine. The implementation was a collaboration.
 | Charts | D3.js | Annotated price chart with event pins. Fan chart for simulation percentile bands. |
 | Styling | Tailwind CSS + CSS custom properties | Custom design system with CSS tokens. |
 | Deployment | Vercel | Serverless functions are first-class. Zero config for Next.js. |
+
+---
+
+## Testing
+
+The quantitative core is unit-tested with Vitest — the math that money decisions would ride on is exactly the code that shouldn't be vibes:
+
+```bash
+npm test
+```
+
+- **Markowitz optimizer** (`lib/sim/optimize.ts`) — max-Sharpe allocates toward higher return at equal risk, risk parity overweights the low-vol asset (verified against the analytic 1/σ solution), singular covariance falls back to equal weight instead of crashing.
+- **Portfolio math** (`lib/sim/portfolio.ts`) — Gaussian-elimination matrix inverse checked against known inverses and `A·A⁻¹ = I`, long-only weight normalization, minimum-variance behavior.
+- **Ticker normalization** (`lib/utils/tickers.ts`) — NSE suffix handling, index aliases (`nifty → ^NSEI`), and rejection of injection-style input (`TCS;DROP TABLE`, path traversal).
+
+26 tests, ~700ms.
 
 ---
 

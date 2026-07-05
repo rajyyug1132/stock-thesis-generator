@@ -35,8 +35,26 @@ const fraunces = Fraunces({
 });
 
 export const metadata: Metadata = {
-  title: 'Stock Thesis Generator',
-  description: 'AI-grounded stock thesis generator for Indian markets',
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? 'https://stock-thesis-generator-mae5.vercel.app'),
+  title: {
+    default: 'Editorial Quant — AI-Grounded Stock Thesis Engine',
+    template: '%s · Editorial Quant',
+  },
+  description:
+    'AI-generated investment theses for Nifty 50 stocks with two-pass grounding: Gemini Pro writes the thesis, Gemini Flash verifies every numeric claim against live market data. Monte Carlo portfolio simulation included.',
+  keywords: ['Nifty 50', 'stock analysis', 'AI thesis', 'Monte Carlo simulation', 'Indian markets', 'grounded AI'],
+  openGraph: {
+    title: 'Editorial Quant — AI-Grounded Stock Thesis Engine',
+    description:
+      'Every claim verified. AI theses for Nifty 50 stocks, grounded against live market data, with Monte Carlo portfolio simulation.',
+    type: 'website',
+    siteName: 'Editorial Quant',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Editorial Quant — AI-Grounded Stock Thesis Engine',
+    description: 'Every claim verified. AI theses for Nifty 50 stocks, grounded against live market data.',
+  },
 };
 
 export default function RootLayout({
