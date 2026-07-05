@@ -8,8 +8,10 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "warm": "npx tsx scripts/warm-cache.ts",
-    "postbuild": "npm run warm"
+    "postbuild": "npm run warm || exit 0"
   },
   "keywords": [],
   "author": "",
@@ -53,6 +55,7 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
-    "@types/d3": "^7.4.3"
+    "@types/d3": "^7.4.3",
+    "vitest": "^4.1.9"
   }
 }
