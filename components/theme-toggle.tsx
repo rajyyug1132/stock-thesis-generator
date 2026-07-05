@@ -5,9 +5,9 @@ import { useTheme, type ThemeChoice } from './theme-provider';
 import { track } from '@/lib/analytics';
 
 const OPTIONS: { value: ThemeChoice; label: string; hint: string }[] = [
-  { value: 'light',  label: 'LIGHT', hint: 'Light theme' },
-  { value: 'dark',   label: 'DARK',  hint: 'Dark theme' },
-  { value: 'system', label: 'AUTO',  hint: 'Follow system' },
+  { value: 'light',  label: '☀ LIGHT', hint: 'Light theme' },
+  { value: 'dark',   label: '☾ DARK',  hint: 'Dark theme' },
+  { value: 'system', label: '◐ AUTO',  hint: 'Follow system' },
 ];
 
 export function ThemeToggle() {

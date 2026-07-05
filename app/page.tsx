@@ -32,6 +32,17 @@ export default function Home() {
         >
           <HeroTicker />
         </div>
+        {/* Scrim — guarantees headline contrast wherever the line wanders */}
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            background: 'linear-gradient(to right, var(--bg-canvas) 0%, transparent 60%)',
+            opacity: 0.82,
+            pointerEvents: 'none',
+            zIndex: 0,
+          }}
+        />
         <div
           className="column"
           style={{ position: 'relative', zIndex: 1, padding: '96px 32px 88px', display: 'flex', flexDirection: 'column', gap: 22 }}

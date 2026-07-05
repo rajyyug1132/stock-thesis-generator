@@ -37,6 +37,34 @@ export function TickerCanvas({
   const ticksRef = useRef<Map<string, TickerEntry>>(new Map());
   const offsetRef = useRef(0);
   const rafRef = useRef<number>(0);
+  // Canvas fillStyle can't resolve CSS variables, so resolve theme tokens to
+  // concrete colors here and refresh whenever <html data-theme> flips.
+  const colorsRef = useRef({
+    up: '#4ade80',
+    down: '#fb7185',
+    price: '#f5f4f0',
+    symbol: 'rgba(241,241,241,0.55)',
+  });
+
+  useEffect(() => {
+    const readThemeColors = () => {
+      const s = getComputedStyle(document.documentElement);
+      const up = s.getPropertyValue('--up').trim();
+      const down = s.getPropertyValue('--down').trim();
+      const price = s.getPropertyValue('--text-primary').trim();
+      const symbol = s.getPropertyValue('--text-tertiary').trim();
+      colorsRef.current = {
+        up: up || colorsRef.current.up,
+        down: down || colorsRef.current.down,
+        price: price || colorsRef.current.price,
+        symbol: symbol || colorsRef.current.symbol,
+      };
+    };
+    readThemeColors();
+    const mo = new MutationObserver(readThemeColors);
+    mo.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+    return () => mo.disconnect();
+  }, []);
 
   // Sync provider prices into the ref that the canvas render loop reads from.
   // This avoids closing over stale state in the rAF callback.
@@ -107,13 +135,12 @@ export function TickerCanvas({
       let x = -offsetRef.current + copy * totalW;
       for (const { entry, symW, priceW, pctW } of measured) {
         const isUp    = entry.changePct >= 0;
-        const color   = isUp ? 'var(--up, #4ade80)' : 'var(--down, #fb7185)';
-        const neutral = 'rgba(241,241,241,0.55)';
+        const color   = isUp ? colorsRef.current.up : colorsRef.current.down;
 
-        ctx.fillStyle = neutral;
+        ctx.fillStyle = colorsRef.current.symbol;
         ctx.fillText(entry.symbol, x + PADDING, H / 2);
 
-        ctx.fillStyle = '#f5f4f0';
+        ctx.fillStyle = colorsRef.current.price;
         ctx.fillText(`₹${entry.price.toFixed(0)}`, x + PADDING + symW + 6, H / 2);
 
         ctx.fillStyle = color;

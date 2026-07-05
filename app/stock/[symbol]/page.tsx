@@ -78,6 +78,19 @@ async function fetchThesis(symbol: string): Promise<ThesisResponse> {
 // ISR: page cached at edge, revalidated hourly
 export const revalidate = 3600;
 
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ symbol: string }>;
+}) {
+  const { symbol } = await params;
+  const sym = symbol.toUpperCase();
+  return {
+    title: `${sym} — AI Thesis`,
+    description: `AI-grounded investment thesis for ${sym}: bull case, bear case, risks and catalysts — every numeric claim verified against live market data.`,
+  };
+}
+
 // Pre-render top 6 at build time — no cold start for featured stocks
 export async function generateStaticParams() {
   return ['RELIANCE', 'TCS', 'HDFCBANK', 'INFY', 'TATAMOTORS', 'ICICIBANK'].map(
@@ -129,6 +142,9 @@ async function ThesisSection({ symbol }: { symbol: string }) {
           <SectionLabel>
             {thesis.symbol.replace('.NS', '')} · NIFTY 50 · {meta.cached ? 'CACHED' : 'FRESH'}
           </SectionLabel>
+          <Pill variant={score >= 0.8 ? 'up' : score >= 0.5 ? 'accent' : 'down'}>
+            {Math.round(score * 100)}% VERIFIED
+          </Pill>
         </div>
         <div className="flex flex-wrap items-baseline gap-4">
           <h1
@@ -153,6 +169,16 @@ async function ThesisSection({ symbol }: { symbol: string }) {
           </div>
         </div>
       </div>
+
+      {/* Abstract — the product leads; everything else supports it */}
+      <section>
+        <ThesisAbstract
+          symbol={thesis.symbol}
+          generatedAt={thesis.generatedAt}
+          groundingScore={score}
+          summary={thesis.summary}
+        />
+      </section>
 
       {/* Fundamentals */}
       <section>
@@ -207,16 +233,6 @@ async function ThesisSection({ symbol }: { symbol: string }) {
           </div>
         </section>
       )}
-
-      {/* Abstract */}
-      <section>
-        <ThesisAbstract
-          symbol={thesis.symbol}
-          generatedAt={thesis.generatedAt}
-          groundingScore={score}
-          summary={thesis.summary}
-        />
-      </section>
 
       {/* Bull / Bear — client island with Evidence Drawer */}
       <StockPageClient

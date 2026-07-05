@@ -62,7 +62,7 @@
   --text-h1:      clamp(2rem, 4vw, 3.5rem);  /* page headline */
   --text-h2:      1.875rem;
   --text-h3:      1.25rem;
-  --text-body:    0.9375rem;                  /* 15px */
+  --text-body:    1rem;                       /* 16px — legibility floor for reading text */
   --text-small:   0.8125rem;                  /* 13px */
   --text-micro:   0.6875rem;                  /* 11px mono labels */
 
@@ -132,11 +132,11 @@
   --border-strong: #c6bdab;
   --border-mint:   #2f8f6f;
 
-  /* Text */
+  /* Text — tertiary/quaternary darkened for AA contrast on bone paper */
   --text-primary:    #1b1813;
-  --text-secondary:  #5b554b;
-  --text-tertiary:   #837c6e;
-  --text-quaternary: #a8a08f;
+  --text-secondary:  #4f493f;
+  --text-tertiary:   #6b6455;
+  --text-quaternary: #8b8371;
 
   /* Accent — deepened mint for contrast on light */
   --accent:        #167a55;
