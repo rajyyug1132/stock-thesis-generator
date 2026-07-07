@@ -14,3 +14,6 @@ build/
 *.swo
 
 .vercel
+
+tsconfig.tsbuildinfo
+graphify-out/

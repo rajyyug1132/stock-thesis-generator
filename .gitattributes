@@ -1,0 +1,17 @@
+# Canonical line endings: LF in repo and working tree
+* text=auto eol=lf
+
+# Shell scripts must stay LF even when checked out on Windows (bash chokes on CRLF)
+*.sh text eol=lf
+
+# Lockfiles / generated
+package-lock.json text eol=lf
+
+# Binary — never touch
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+*.pdf binary
