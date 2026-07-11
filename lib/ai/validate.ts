@@ -1,10 +1,6 @@
-import { getAI, geminiAvailable, flashModel, flash2Model } from './gemini';
-import { deepseekGenerate, deepseekAvailable, isGeminiQuotaError } from './deepseek';
-import { openrouterGenerate, openrouterAvailable } from './openrouter';
-import { groqGenerate, groqAvailable } from './groq';
+import { nvidiaGenerate, nvidiaAvailable } from './nvidia';
 import {
   ValidationResultSchema,
-  validationResponseSchema,
   type ValidationResult,
   type Thesis,
 } from './schemas';
@@ -24,7 +20,7 @@ A claim is UNVERIFIED if:
 
 Output JSON only.`;
 
-const DEEPSEEK_SCHEMA_HINT = `
+const SCHEMA_HINT = `
 Output a JSON object:
 {
   "claims": [
@@ -40,10 +36,7 @@ Output a JSON object:
   "summary": "1-2 sentences about overall grounding quality"
 }`;
 
-function buildPrompt(thesis: Thesis, context: Context, compact = false): {
-  allClaims: Array<{ location: string; claim: string; evidence: string }>;
-  userPrompt: string;
-} {
+function buildPrompt(thesis: Thesis, context: Context): { userPrompt: string } {
   const allClaims: Array<{ location: string; claim: string; evidence: string }> = [];
 
   thesis.bullCase.points.forEach((p, i) => {
@@ -56,8 +49,8 @@ function buildPrompt(thesis: Thesis, context: Context, compact = false): {
     allClaims.push({ location: `risks[${i}]`, claim: r.risk, evidence: r.risk });
   });
 
-  // Percentage-form stats so fallback verifiers can match numbers.
-  // groqContext() converts annualReturn 0.052 → 5.2 (%) for token efficiency.
+  // Percentage-form stats so the verifier can match numbers.
+  // compactContext() converts annualReturn 0.052 → 5.2 (%) for token efficiency.
   // The full context stores it as 0.052. Without both forms, the verifier sees
   // "5.2%" in the thesis evidence but only finds "0.052" in source → UNVERIFIED.
   const statsPct = {
@@ -67,111 +60,37 @@ function buildPrompt(thesis: Thesis, context: Context, compact = false): {
     pctFromLowPct:   +(context.priceTrend.pctFromLow  * 100).toFixed(1),
   };
 
-  // Compact mode: strip prices array + truncate news — keeps Groq under 12k TPM
-  const sourceData = compact
-    ? { ...context, prices: [], news: (context.news ?? []).slice(0, 3).map((n) => ({ title: n.title })), _statsPct: statsPct }
-    : { ...context, _statsPct: statsPct };
+  // Strip prices array + truncate news — keeps request compact
+  const sourceData = {
+    ...context,
+    prices: [],
+    news: (context.news ?? []).slice(0, 3).map((n) => ({ title: n.title })),
+    _statsPct: statsPct,
+  };
 
   const userPrompt = `SOURCE DATA:\n${JSON.stringify(sourceData, null, 2)}\n\nTHESIS CLAIMS TO VERIFY:\n${JSON.stringify(allClaims, null, 2)}`;
-  return { allClaims, userPrompt };
-}
-
-async function validateWithGemini(thesis: Thesis, context: Context): Promise<ValidationResult> {
-  const ai = getAI();
-  const { userPrompt } = buildPrompt(thesis, context);
-
-  const response = await ai.models.generateContent({
-    model: flashModel,
-    config: {
-      temperature: 0,
-      responseMimeType: 'application/json',
-      responseSchema: validationResponseSchema,
-      systemInstruction: SYSTEM_PROMPT,
-    },
-    contents: [{ role: 'user', parts: [{ text: userPrompt }] }],
-  });
-
-  const text = response.text ?? '';
-  return ValidationResultSchema.parse(JSON.parse(text));
-}
-
-async function validateWithDeepSeek(thesis: Thesis, context: Context): Promise<ValidationResult> {
-  const { userPrompt } = buildPrompt(thesis, context);
-
-  const text = await deepseekGenerate({
-    systemPrompt: SYSTEM_PROMPT + DEEPSEEK_SCHEMA_HINT,
-    userPrompt,
-    temperature: 0,
-  });
-
-  return ValidationResultSchema.parse(JSON.parse(text));
+  return { userPrompt };
 }
 
 export async function validateThesis(
   thesis: Thesis,
   context: Context
 ): Promise<ValidationResult> {
-  if (geminiAvailable()) {
-    try {
-      return await validateWithGemini(thesis, context);
-    } catch (err) {
-      if (!isGeminiQuotaError(err)) throw err;
-      // Flash 2.5 quota exhausted — try Gemini 2.0 Flash
-      try {
-        const ai = getAI();
-        const { userPrompt } = buildPrompt(thesis, context);
-        const response = await ai.models.generateContent({
-          model: flash2Model,
-          config: { temperature: 0, responseMimeType: 'application/json', responseSchema: validationResponseSchema, systemInstruction: SYSTEM_PROMPT },
-          contents: [{ role: 'user', parts: [{ text: userPrompt }] }],
-        });
-        return ValidationResultSchema.parse(JSON.parse(response.text ?? ''));
-      } catch (flash2Err) {
-        if (!isGeminiQuotaError(flash2Err)) throw flash2Err;
-        // All Gemini quota exhausted — fall through to DeepSeek
-      }
-    }
-  }
-
-  if (deepseekAvailable()) {
-    try {
-      return await validateWithDeepSeek(thesis, context);
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      if (!msg.includes('Insufficient Balance')) throw err;
-      // Balance depleted — fall through to Groq
-    }
-  }
-
-  if (openrouterAvailable()) {
-    try {
-      const { userPrompt } = buildPrompt(thesis, context, true);
-      const text = await openrouterGenerate({
-        systemPrompt: SYSTEM_PROMPT + DEEPSEEK_SCHEMA_HINT,
-        userPrompt,
-        temperature: 0,
-      });
-      return ValidationResultSchema.parse(JSON.parse(text));
-    } catch {
-      // Fall through to Groq
-    }
-  }
-
-  if (groqAvailable()) {
-    // compact=true strips prices + truncates news to keep under Groq's 12k TPM
-    const { userPrompt } = buildPrompt(thesis, context, true);
-    const text = await groqGenerate({
-      systemPrompt: SYSTEM_PROMPT + DEEPSEEK_SCHEMA_HINT,
-      userPrompt,
-      temperature: 0,
+  if (!nvidiaAvailable()) {
+    // Soft fail: return a neutral validation rather than crashing the whole thesis
+    return ValidationResultSchema.parse({
+      claims: [],
+      overallScore: 0.5,
+      summary: 'Validation unavailable — NVIDIA_API_KEY not set.',
     });
-    return ValidationResultSchema.parse(JSON.parse(text));
   }
 
-  // Soft fail: return a neutral validation rather than crashing the whole thesis
-  return ValidationResultSchema.parse({
-    claims: [],
-    overallScore: 0.5,
-    summary: 'Validation unavailable — no AI provider configured.',
+  const { userPrompt } = buildPrompt(thesis, context);
+  const text = await nvidiaGenerate({
+    systemPrompt: SYSTEM_PROMPT + SCHEMA_HINT,
+    userPrompt,
+    temperature: 0,
   });
+
+  return ValidationResultSchema.parse(JSON.parse(text));
 }

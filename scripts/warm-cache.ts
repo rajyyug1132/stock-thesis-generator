@@ -1,6 +1,6 @@
 #!/usr/bin/env npx tsx
 // Run on deploy to pre-warm Redis + Vercel edge cache for top 6 stocks.
-// Costs: 6 Gemini Pro calls + 6 Flash calls = 12 calls total. Fine on free tier.
+// Costs: 6 thesis calls + 6 validation calls = 12 calls total. Fine on free tier.
 
 const BASE_URL = process.env.SITE_URL ?? 'http://localhost:3000';
 const TOP_6 = ['RELIANCE', 'TCS', 'HDFCBANK', 'INFY', 'TATAMOTORS', 'ICICIBANK'];

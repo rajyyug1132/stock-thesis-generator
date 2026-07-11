@@ -1,4 +1,4 @@
-import { getAI, geminiAvailable, flashModel } from './gemini';
+import { nvidiaGenerate, nvidiaAvailable } from './nvidia';
 import { ALL_STOCKS } from '@/lib/data/nifty50';
 
 export interface PortfolioBuildResult {
@@ -19,8 +19,8 @@ STRICT RULES:
 6. Output ONLY valid JSON matching the schema exactly.`;
 
 export async function buildPortfolio(prompt: string): Promise<PortfolioBuildResult> {
-  if (!geminiAvailable()) {
-    throw new Error('Gemini API key required for portfolio builder');
+  if (!nvidiaAvailable()) {
+    throw new Error('NVIDIA_API_KEY required for portfolio builder');
   }
 
   // Provide a compact universe to stay within token budget
@@ -31,18 +31,9 @@ export async function buildPortfolio(prompt: string): Promise<PortfolioBuildResu
     universe: s.universe,
   }));
 
-  const ai = getAI();
-  const response = await ai.models.generateContent({
-    model: flashModel,
-    config: {
-      temperature: 0.4,
-      responseMimeType: 'application/json',
-      systemInstruction: SYSTEM_PROMPT,
-    },
-    contents: [{
-      role: 'user',
-      parts: [{
-        text: `User portfolio goal: "${prompt}"
+  const text = await nvidiaGenerate({
+    systemPrompt: SYSTEM_PROMPT,
+    userPrompt: `User portfolio goal: "${prompt}"
 
 Available stocks (ONLY choose from these):
 ${JSON.stringify(universe, null, 0)}
@@ -53,12 +44,10 @@ Return JSON with this exact shape:
   "weights": [0.5, 0.5],
   "rationale": "2-3 sentence explanation of the selection",
   "themeLabel": "2-4 word theme"
-}`
-      }],
-    }],
+}`,
+    temperature: 0.4,
   });
 
-  const text = response.text ?? '';
   const parsed = JSON.parse(text) as PortfolioBuildResult;
 
   // Validate symbols are in our universe

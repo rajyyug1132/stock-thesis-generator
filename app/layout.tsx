@@ -41,7 +41,7 @@ export const metadata: Metadata = {
     template: '%s · Editorial Quant',
   },
   description:
-    'AI-generated investment theses for Nifty 50 stocks with two-pass grounding: Gemini Pro writes the thesis, Gemini Flash verifies every numeric claim against live market data. Monte Carlo portfolio simulation included.',
+    'AI-generated investment theses for Nifty 50 stocks with two-pass grounding: one pass writes the thesis, a second pass verifies every numeric claim against live market data. Monte Carlo portfolio simulation included.',
   keywords: ['Nifty 50', 'stock analysis', 'AI thesis', 'Monte Carlo simulation', 'Indian markets', 'grounded AI'],
   openGraph: {
     title: 'Editorial Quant — AI-Grounded Stock Thesis Engine',

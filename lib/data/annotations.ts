@@ -23,7 +23,7 @@ export interface ChartAnnotation {
 
 /**
  * Seed annotations keyed by ticker symbol.
- * In production these would be hydrated from the Gemini thesis API
+ * In production these would be hydrated from the thesis API
  * (the `priceDropEvent` field already extracted from the response).
  */
 export const ANNOTATIONS: Record<string, ChartAnnotation[]> = {
