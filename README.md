@@ -43,6 +43,7 @@ flowchart LR
 Two-pass grounding is the core idea: one model writes, a second model checks every number in the output against the raw data it was given. The verifier's output — not the writer's confidence — is what the UI displays.
 
 ---
+<img width="1853" height="868" alt="Screenshot 2026-07-12 000425" src="https://github.com/user-attachments/assets/9b12ef1d-5191-446f-8f54-df76410a8064" />
 
 ## Why I built it this way
 
