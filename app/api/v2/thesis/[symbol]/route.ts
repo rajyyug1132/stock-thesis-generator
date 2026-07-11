@@ -93,13 +93,13 @@ export async function GET(
     const msg = err instanceof Error ? err.message : String(err);
     logger.error({ symbol, tier, error: msg }, 'v2 Thesis error');
 
-    const isQuota = (msg.includes('RESOURCE_EXHAUSTED') || msg.includes('quota')) && !msg.includes('Groq');
+    const isQuota = msg.includes('RESOURCE_EXHAUSTED') || msg.includes('quota');
     const isRate  = msg.includes('429') || msg.includes('rate limit');
 
     if (isQuota || isRate) {
       return v2err(
         'QUOTA_EXHAUSTED',
-        'AI quota exhausted — all providers at daily limit. Try again after midnight PT.',
+        'AI quota exhausted. Try again shortly.',
         503
       );
     }

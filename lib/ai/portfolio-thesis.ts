@@ -1,4 +1,4 @@
-import { getAI, geminiAvailable, flashModel } from './gemini';
+import { nvidiaGenerate, nvidiaAvailable } from './nvidia';
 import type { Context } from './context';
 
 export interface PortfolioThesis {
@@ -22,12 +22,24 @@ STRICT RULES:
 6. Tone: institutional-grade, analytical, direct.
 7. Output ONLY valid JSON matching the schema. No prose preamble.`;
 
+const SCHEMA_HINT = `
+Return JSON with this exact shape:
+{
+  "generatedAt": "ISO datetime",
+  "summary": "2-3 sentence portfolio overview",
+  "sectorBreakdown": [{ "sector": "IT", "weight": 0.35, "note": "dominant exposure — key risk" }],
+  "keyRisk": "single biggest portfolio-level risk",
+  "correlationNote": "how correlated are these holdings?",
+  "bullCase": "2-3 sentences on the portfolio bull case",
+  "bearCase": "2-3 sentences on the portfolio bear case"
+}`;
+
 export async function generatePortfolioThesis(
   contexts: Context[],
   weights: number[]
 ): Promise<PortfolioThesis> {
-  if (!geminiAvailable()) {
-    throw new Error('Gemini API key required for portfolio thesis generation');
+  if (!nvidiaAvailable()) {
+    throw new Error('NVIDIA_API_KEY required for portfolio thesis generation');
   }
 
   // Build compact portfolio context
@@ -67,21 +79,12 @@ export async function generatePortfolioThesis(
     holdings: stockSummaries,
   };
 
-  const ai = getAI();
-  const response = await ai.models.generateContent({
-    model: flashModel,
-    config: {
-      temperature: 0.3,
-      responseMimeType: 'application/json',
-      systemInstruction: SYSTEM_PROMPT,
-    },
-    contents: [{
-      role: 'user',
-      parts: [{ text: `Generate a portfolio-level thesis for this Indian equity portfolio:\n\n${JSON.stringify(prompt, null, 2)}\n\nReturn JSON with this exact shape:\n{\n  "generatedAt": "ISO datetime",\n  "summary": "2-3 sentence portfolio overview",\n  "sectorBreakdown": [{ "sector": "IT", "weight": 0.35, "note": "dominant exposure — key risk" }],\n  "keyRisk": "single biggest portfolio-level risk",\n  "correlationNote": "how correlated are these holdings?",\n  "bullCase": "2-3 sentences on the portfolio bull case",\n  "bearCase": "2-3 sentences on the portfolio bear case"\n}` }],
-    }],
+  const text = await nvidiaGenerate({
+    systemPrompt: SYSTEM_PROMPT + SCHEMA_HINT,
+    userPrompt: `Generate a portfolio-level thesis for this Indian equity portfolio:\n\n${JSON.stringify(prompt, null, 2)}`,
+    temperature: 0.3,
   });
 
-  const text = response.text ?? '';
   const parsed = JSON.parse(text) as PortfolioThesis;
   parsed.generatedAt = new Date().toISOString();
 

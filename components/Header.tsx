@@ -783,12 +783,24 @@ export function Header() {
 }
 
 /* ══════════════════════════════════════════════════════════════════════════════
-   MethodStrip — three-column process explainer with vertical dividers.
+   MethodStrip — proof of grounding: what we do, how we do it.
 ══════════════════════════════════════════════════════════════════════════════ */
 const METHOD_ITEMS = [
-  { n: '01', label: 'LIVE DATA',         desc: 'Yahoo Finance prices, fundamentals, and news fetched at request time.' },
-  { n: '02', label: 'GEMINI PRO THESIS', desc: 'Structured JSON output: summary, bull case, bear case, risks, catalysts.' },
-  { n: '03', label: 'FLASH VALIDATION',  desc: 'Every evidence field checked against source. Grounded vs unverified — shown inline.' },
+  {
+    icon: '📊',
+    label: 'LIVE FEEDS',
+    desc: 'Real data from Yahoo Finance — prices, fundamentals, headlines. No cache staleness.'
+  },
+  {
+    icon: '🧠',
+    label: 'AI SYNTHESIS',
+    desc: 'NVIDIA writes grounded theses: bull case, bear case, risks, catalysts. Structured, not vague.'
+  },
+  {
+    icon: '✓',
+    label: 'VERIFICATION',
+    desc: 'Every numeric claim verified against source. Green = grounded. Sand = unconfirmed. Inline audit trail.'
+  },
 ] as const;
 
 export function MethodStrip() {
@@ -800,24 +812,15 @@ export function MethodStrip() {
     }}>
       <div
         className="column"
-        style={{ padding: '24px 32px', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 0 }}
+        style={{ padding: '32px 32px', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 32 }}
       >
-        {METHOD_ITEMS.map(({ n, label, desc }, i) => (
-          <div
-            key={n}
-            style={{
-              paddingLeft:  i > 0 ? 24 : 0,
-              paddingRight: i < METHOD_ITEMS.length - 1 ? 24 : 0,
-              borderRight:  i < METHOD_ITEMS.length - 1 ? '1px solid var(--border-subtle)' : 'none',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-              <span className="num" style={{ fontSize: 11, color: 'var(--accent)', letterSpacing: '0.1em' }}>
-                {n}
-              </span>
+        {METHOD_ITEMS.map(({ icon, label, desc }, i) => (
+          <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <span style={{ fontSize: '24px', lineHeight: 1 }}>{icon}</span>
               <SectionLabel>{label}</SectionLabel>
             </div>
-            <p style={{ margin: 0, color: 'var(--text-tertiary)', fontSize: 'var(--text-small)', lineHeight: 1.55 }}>
+            <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: 'var(--text-small)', lineHeight: 1.6, maxWidth: '50ch' }}>
               {desc}
             </p>
           </div>

@@ -23,7 +23,7 @@ export function ThesisLoading() {
         fontSize: 9, letterSpacing: '0.22em',
         color: 'var(--mint)', marginBottom: '1rem',
       }}>
-        GEMINI 2.5 PRO · REASONING
+        NVIDIA · REASONING
       </div>
 
       {/* Progress bar */}

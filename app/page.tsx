@@ -73,8 +73,8 @@ export default function Home() {
               maxWidth: 450,
             }}
           >
-            AI-generated investment theses for Nifty 50 stocks. Two-pass grounding: Gemini Pro writes
-            the thesis, Gemini Flash verifies every numeric claim against live data.{' '}
+            AI-generated investment theses for Nifty 50 stocks. Two-pass grounding: one model writes
+            the thesis, a second pass verifies every numeric claim against live data.{' '}
             <em style={{ fontFamily: 'var(--font-serif)', color: 'var(--accent)' }}>No vibe analysis.</em>
           </p>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, paddingTop: 8 }}>
@@ -147,7 +147,7 @@ export default function Home() {
           className="column num"
           style={{ fontSize: 'var(--text-micro)', color: 'var(--text-quaternary)', letterSpacing: '0.1em', textTransform: 'uppercase' }}
         >
-          NIFTY 50 THESIS ENGINE · DATA FROM YAHOO FINANCE · AI BY GOOGLE GEMINI · NOT FINANCIAL ADVICE
+          NIFTY 50 THESIS ENGINE · DATA FROM YAHOO FINANCE · AI BY NVIDIA · NOT FINANCIAL ADVICE
         </div>
       </footer>
 

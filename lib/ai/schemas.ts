@@ -1,5 +1,4 @@
 import { z } from 'zod';
-import { Type } from '@google/genai';
 
 // Evidence field rule: MUST cite specific numbers/sources from provided JSON.
 // ✓ "P/E ratio of 24.3, below 5Y average ~28"
@@ -55,94 +54,6 @@ export type ThesisPoint = z.infer<typeof ThesisPointSchema>;
 export type Risk = z.infer<typeof RiskSchema>;
 export type Catalyst = z.infer<typeof CatalystSchema>;
 
-// ---- Gemini responseSchema (structured output) ----
-
-export const thesisResponseSchema = {
-  type: Type.OBJECT,
-  properties: {
-    symbol: { type: Type.STRING },
-    generatedAt: { type: Type.STRING },
-    summary: { type: Type.STRING },
-    bullCase: {
-      type: Type.OBJECT,
-      properties: {
-        headline: { type: Type.STRING },
-        points: {
-          type: Type.ARRAY,
-          items: {
-            type: Type.OBJECT,
-            properties: {
-              claim: { type: Type.STRING },
-              evidence: {
-                type: Type.STRING,
-                description:
-                  'MUST cite a specific number from the provided JSON. Example: "P/E of 24.3". NEVER write vague phrases like "strong fundamentals" or "good growth". If no data supports the claim, say "(data not available)".',
-              },
-            },
-            required: ['claim', 'evidence'],
-          },
-        },
-      },
-      required: ['headline', 'points'],
-    },
-    bearCase: {
-      type: Type.OBJECT,
-      properties: {
-        headline: { type: Type.STRING },
-        points: {
-          type: Type.ARRAY,
-          items: {
-            type: Type.OBJECT,
-            properties: {
-              claim: { type: Type.STRING },
-              evidence: {
-                type: Type.STRING,
-                description:
-                  'MUST cite a specific number from the provided JSON. NEVER write vague phrases.',
-              },
-            },
-            required: ['claim', 'evidence'],
-          },
-        },
-      },
-      required: ['headline', 'points'],
-    },
-    risks: {
-      type: Type.ARRAY,
-      items: {
-        type: Type.OBJECT,
-        properties: {
-          risk: { type: Type.STRING },
-          severity: { type: Type.STRING, enum: ['low', 'medium', 'high'] },
-        },
-        required: ['risk', 'severity'],
-      },
-    },
-    catalysts: {
-      type: Type.ARRAY,
-      items: {
-        type: Type.OBJECT,
-        properties: {
-          event: { type: Type.STRING },
-          timeframe: { type: Type.STRING },
-          impact: { type: Type.STRING, enum: ['positive', 'negative', 'mixed'] },
-        },
-        required: ['event', 'timeframe', 'impact'],
-      },
-    },
-    priceDropEvent: {
-      type: Type.OBJECT,
-      description: 'Link a significant price drop (negative annual return) to a specific recent news event headline from the context. Set to null if no major drop or no linked news is found.',
-      properties: {
-        dropPercent: { type: Type.STRING, description: 'Percentage of price drop, e.g. "-34.7%"' },
-        eventHeadline: { type: Type.STRING, description: 'Headline of the news event causing or linked to this drop, e.g. "Weak Q4 guidance"' },
-      },
-      required: ['dropPercent', 'eventHeadline'],
-    },
-  },
-  required: ['symbol', 'generatedAt', 'summary', 'bullCase', 'bearCase', 'risks', 'catalysts'],
-};
-
 // ---- Validation result schemas ----
 
 export const ValidationClaimSchema = z.object({
@@ -154,32 +65,10 @@ export const ValidationClaimSchema = z.object({
 });
 
 export const ValidationResultSchema = z.object({
-  // Gemini sometimes returns score as 0-100 instead of 0-1; normalize
+  // Model sometimes returns score as 0-100 instead of 0-1; normalize
   overallScore: z.number().transform((v) => (v > 1 ? v / 100 : v)),
   claims: z.array(ValidationClaimSchema),
 });
 
 export type ValidationClaim = z.infer<typeof ValidationClaimSchema>;
 export type ValidationResult = z.infer<typeof ValidationResultSchema>;
-
-export const validationResponseSchema = {
-  type: Type.OBJECT,
-  properties: {
-    overallScore: { type: Type.NUMBER },
-    claims: {
-      type: Type.ARRAY,
-      items: {
-        type: Type.OBJECT,
-        properties: {
-          location: { type: Type.STRING },
-          claim: { type: Type.STRING },
-          evidence: { type: Type.STRING },
-          verified: { type: Type.BOOLEAN },
-          reason: { type: Type.STRING },
-        },
-        required: ['location', 'claim', 'evidence', 'verified', 'reason'],
-      },
-    },
-  },
-  required: ['overallScore', 'claims'],
-};

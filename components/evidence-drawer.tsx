@@ -305,7 +305,7 @@ export function EvidenceDrawer({ source, onClose }: EvidenceDrawerProps) {
                   textTransform: 'uppercase',
                 }}
               >
-                Validated by Gemini Flash
+                Validated by NVIDIA
               </span>
               <span
                 style={{
