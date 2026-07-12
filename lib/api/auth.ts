@@ -6,13 +6,17 @@
  *   3. Unauthenticated  → anonymous IP limits (handled in middleware)
  */
 
-import { createHash, randomBytes } from 'crypto';
+import { randomBytes } from 'crypto';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 import { eq, and } from 'drizzle-orm';
 import { apiKeys } from '@/lib/db/schema';
 import { supabaseServer } from '@/lib/supabase/server';
+import { readKeyCache, writeKeyCache, writeNegativeKeyCache } from '@/lib/api/key-cache';
+import { hashKey } from '@/lib/api/hash';
 import type { NextRequest } from 'next/server';
+
+export { hashKey };
 
 export type AuthResult =
   | { mode: 'apikey'; keyId: string; userId: string; tier: 'free' | 'pro' }
@@ -55,6 +59,14 @@ async function resolveApiKey(raw: string): Promise<AuthResult | AuthError> {
 
   const hash = hashKey(raw);
 
+  const cached = await readKeyCache(hash);
+  if (cached === 'invalid') {
+    return { error: 'API key not found or revoked', status: 401 };
+  }
+  if (cached) {
+    return { mode: 'apikey', ...cached };
+  }
+
   const conn = postgres(process.env.DATABASE_URL!, { max: 1 });
   const db = drizzle(conn);
   try {
@@ -65,6 +77,7 @@ async function resolveApiKey(raw: string): Promise<AuthResult | AuthError> {
       .limit(1);
 
     if (!key) {
+      await writeNegativeKeyCache(hash);
       return { error: 'API key not found or revoked', status: 401 };
     }
 
@@ -74,6 +87,7 @@ async function resolveApiKey(raw: string): Promise<AuthResult | AuthError> {
       .where(eq(apiKeys.id, key.id))
       .catch(() => {});
 
+    await writeKeyCache(hash, { keyId: key.id, userId: key.userId, tier: key.tier });
     return { mode: 'apikey', keyId: key.id, userId: key.userId, tier: key.tier };
   } finally {
     await conn.end();
@@ -87,10 +101,6 @@ export function generateApiKey(): { raw: string; hash: string; prefix: string } 
   const hash   = hashKey(raw);
   const prefix = raw.slice(0, 15); // "qe_live_" + first 7 chars
   return { raw, hash, prefix };
-}
-
-export function hashKey(raw: string): string {
-  return createHash('sha256').update(raw).digest('hex');
 }
 
 export function isAuthError(r: AuthResult | AuthError): r is AuthError {

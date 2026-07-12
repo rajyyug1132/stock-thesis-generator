@@ -11,6 +11,7 @@ import { eq, and } from 'drizzle-orm';
 import { apiKeys } from '@/lib/db/schema';
 import { supabaseServer } from '@/lib/supabase/server';
 import { generateApiKey } from '@/lib/api/auth';
+import { deleteKeyCache } from '@/lib/api/key-cache';
 import { v2ok, v2err } from '@/lib/api/response';
 import logger from '@/lib/utils/logger';
 
@@ -132,11 +133,13 @@ export async function DELETE(request: NextRequest) {
   if (!id) return v2err('BAD_REQUEST', 'id query param required', 400);
 
   try {
-    await withDb((db) =>
+    const [row] = await withDb((db) =>
       db.update(apiKeys)
         .set({ revoked: true })
         .where(and(eq(apiKeys.id, id), eq(apiKeys.userId, auth.userId)))
+        .returning({ keyHash: apiKeys.keyHash })
     );
+    if (row) await deleteKeyCache(row.keyHash).catch(() => {});
 
     logger.info({ userId: auth.userId, keyId: id }, 'API key revoked');
     return v2ok({ revoked: true, id }, { cached: false });
