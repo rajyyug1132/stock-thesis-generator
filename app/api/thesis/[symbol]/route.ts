@@ -4,6 +4,7 @@ import { isNifty50 } from '@/lib/data/nifty50';
 import { buildContext } from '@/lib/ai/context';
 import { generateThesis } from '@/lib/ai/thesis';
 import { validateThesis } from '@/lib/ai/validate';
+import { fetchEvidence } from '@/lib/data/filings';
 import { cached } from '@/lib/cache/redis';
 import logger from '@/lib/utils/logger';
 
@@ -40,6 +41,13 @@ export async function GET(
         const context = await buildContext(symbol);
         const { tokenUsage, ...thesis } = await generateThesis(context);
         const validation = await validateThesis(thesis, context);
+        // Separate cache entry: evidence is slow (StockRAG cold start) and
+        // shouldn't force a full thesis regen when it changes independently.
+        const { data: evidence } = await cached(
+          `evidence:${symbol}:v1`,
+          86400,
+          () => fetchEvidence(symbol)
+        );
 
         logger.info(
           { symbol, tokenUsage, validationScore: validation.overallScore },
@@ -62,6 +70,7 @@ export async function GET(
             },
             prices: context.prices,
             news: context.news,
+            evidence,
             tokenUsage,
           },
         };
