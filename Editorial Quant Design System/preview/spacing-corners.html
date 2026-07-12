@@ -1,0 +1,42 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Corners + Elevation</title>
+<link rel="stylesheet" href="_card.css">
+</head><body><div class="card">
+  <div class="section-label" style="margin-bottom:14px">CORNERS · ZERO RADIUS  ·  ELEVATION VIA SURFACE</div>
+  <div style="display:flex;gap:18px;align-items:flex-end">
+    <!-- canvas → elevated → card stack to show elevation -->
+    <div style="background:#0b0a09;border:1px solid #26221f;width:160px;height:120px;position:relative">
+      <div style="position:absolute;top:8px;left:10px;font-family:var(--font-mono);font-size:9px;letter-spacing:0.15em;color:var(--text-tertiary);text-transform:uppercase">L0 · CANVAS</div>
+      <div style="position:absolute;top:24px;left:10px;right:10px;bottom:10px;background:#131210;border:1px solid #26221f">
+        <div style="position:absolute;top:8px;left:10px;font-family:var(--font-mono);font-size:9px;letter-spacing:0.15em;color:var(--text-tertiary);text-transform:uppercase">L1 · ELEVATED</div>
+        <div style="position:absolute;top:24px;left:10px;right:10px;bottom:10px;background:#1a1816;border:1px solid #26221f">
+          <div style="position:absolute;top:8px;left:10px;font-family:var(--font-mono);font-size:9px;letter-spacing:0.15em;color:var(--text-tertiary);text-transform:uppercase">L2 · CARD</div>
+        </div>
+      </div>
+    </div>
+    <!-- sharp-corner spec -->
+    <div>
+      <div style="font-family:var(--font-mono);font-size:10px;letter-spacing:0.15em;color:var(--text-tertiary);text-transform:uppercase;margin-bottom:6px">SHARP · BORDER-RADIUS: 0</div>
+      <svg width="220" height="80" viewBox="0 0 220 80">
+        <rect x="0.5" y="0.5" width="219" height="79" fill="#131210" stroke="#3a342d" stroke-width="1"/>
+        <line x1="0" y1="0" x2="20" y2="0" stroke="#a8c7ba" stroke-width="2"/>
+        <line x1="0" y1="0" x2="0" y2="20" stroke="#a8c7ba" stroke-width="2"/>
+        <line x1="219" y1="0" x2="200" y2="0" stroke="#a8c7ba" stroke-width="2"/>
+        <line x1="219" y1="0" x2="219" y2="20" stroke="#a8c7ba" stroke-width="2"/>
+        <line x1="0" y1="79" x2="20" y2="79" stroke="#a8c7ba" stroke-width="2"/>
+        <line x1="0" y1="79" x2="0" y2="60" stroke="#a8c7ba" stroke-width="2"/>
+        <line x1="219" y1="79" x2="200" y2="79" stroke="#a8c7ba" stroke-width="2"/>
+        <line x1="219" y1="79" x2="219" y2="60" stroke="#a8c7ba" stroke-width="2"/>
+        <text x="110" y="46" text-anchor="middle" font-family="'Geist Mono', monospace" font-size="11" fill="#e6e2dd" letter-spacing="0.1em">0PX</text>
+      </svg>
+    </div>
+    <!-- shadow forbidden -->
+    <div>
+      <div style="font-family:var(--font-mono);font-size:10px;letter-spacing:0.15em;color:var(--text-tertiary);text-transform:uppercase;margin-bottom:6px">SHADOW · FORBIDDEN</div>
+      <div style="width:140px;height:80px;background:#131210;border:1px solid #3a342d;position:relative;display:flex;align-items:center;justify-content:center">
+        <span style="font-family:var(--font-mono);font-size:11px;color:var(--text-tertiary);letter-spacing:0.15em">NONE</span>
+        <span style="position:absolute;top:-7px;right:-7px;color:#c98a7a;font-size:18px;font-family:var(--font-mono)">×</span>
+      </div>
+    </div>
+  </div>
+</div></body></html>

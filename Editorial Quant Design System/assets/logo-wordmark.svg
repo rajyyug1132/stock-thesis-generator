@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 48" aria-label="Editorial Quant wordmark">
+  <text x="0" y="32" font-family="&#39;Instrument Serif&#39;, Georgia, serif" font-size="28" fill="#e6e2dd" font-style="italic">Editorial</text>
+  <text x="120" y="32" font-family="&#39;Geist Mono&#39;, monospace" font-size="22" fill="#e6e2dd" letter-spacing="0.04em">Quant</text>
+  <line x1="232" y1="14" x2="240" y2="14" stroke="#a8c7ba" stroke-width="1.5"></line>
+  <line x1="240" y1="14" x2="240" y2="22" stroke="#a8c7ba" stroke-width="1.5"></line>
+  <line x1="240" y1="22" x2="252" y2="10" stroke="#a8c7ba" stroke-width="1.5"></line>
+  <line x1="252" y1="10" x2="262" y2="22" stroke="#a8c7ba" stroke-width="1.5"></line>
+  <line x1="262" y1="22" x2="276" y2="6" stroke="#a8c7ba" stroke-width="1.5"></line>
+</svg>

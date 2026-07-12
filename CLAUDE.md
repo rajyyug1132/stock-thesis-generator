@@ -60,43 +60,38 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
 
 ---
 
-## MCP Tools: code-review-graph
+## Codebase exploration
 
-**IMPORTANT: This project has a knowledge graph. ALWAYS use the
-code-review-graph MCP tools BEFORE using Grep/Glob/Read to explore
-the codebase.** The graph is faster, cheaper (fewer tokens), and gives
-you structural context (callers, dependents, test coverage) that file
-scanning cannot.
+Try `mcp__code-review-graph__*` tools first (`semantic_search_nodes`, `query_graph`,
+`get_impact_radius`, `detect_changes`) if that MCP server is connected in this session —
+check the tool list before assuming it's there. It has not been connected in any session
+observed as of 2026-07-07, so in practice: use `graphify` (this repo already has a graph —
+see `graphify-out/`, rebuild with `/graphify` if stale) or plain Grep/Glob/Read. Don't
+block on the code-review-graph tools being available; fall back immediately if they aren't
+in the tool list, rather than retrying.
 
-### When to use graph tools FIRST
+## Shipping
 
-- **Exploring code**: `semantic_search_nodes` or `query_graph` instead of Grep
-- **Understanding impact**: `get_impact_radius` instead of manually tracing imports
-- **Code review**: `detect_changes` + `get_review_context` instead of reading entire files
-- **Finding relationships**: `query_graph` with callers_of/callees_of/imports_of/tests_for
-- **Architecture questions**: `get_architecture_overview` + `list_communities`
+Use the `/shipcheck` skill (`~/.claude/skills/shipcheck/SKILL.md`) for the
+typecheck→build→deploy→smoke-test loop instead of retyping each step. This project
+deploys via `vercel deploy --prod` (git-connected auto-deploy is NOT configured — a
+`git push` alone does not deploy). Smoke-test routes: `/`, `/stock/RELIANCE`,
+`/api/thesis/RELIANCE`.
 
-Fall back to Grep/Glob/Read **only** when the graph doesn't cover what you need.
+## Pinned decisions (don't re-litigate without asking)
 
-### Key Tools
-
-| Tool | Use when |
-|------|----------|
-| `detect_changes` | Reviewing code changes — gives risk-scored analysis |
-| `get_review_context` | Need source snippets for review — token-efficient |
-| `get_impact_radius` | Understanding blast radius of a change |
-| `get_affected_flows` | Finding which execution paths are impacted |
-| `query_graph` | Tracing callers, callees, imports, tests, dependencies |
-| `semantic_search_nodes` | Finding functions/classes by name or keyword |
-| `get_architecture_overview` | Understanding high-level codebase structure |
-| `refactor_tool` | Planning renames, finding dead code |
-
-### Workflow
-
-1. The graph auto-updates on file changes (via hooks).
-2. Use `detect_changes` for code review.
-3. Use `get_affected_flows` to understand impact.
-4. Use `query_graph` pattern="tests_for" to check coverage.
+- **Nifty 50 only** — scope is deliberate, not a TODO. Adding other markets is a
+  documented future item, not something to do opportunistically mid-task.
+- **Two-pass grounding is the product** — one AI call writes the thesis, a second
+  verifies every numeric claim against source data. Never collapse this to one call
+  "for simplicity."
+- **Line endings are LF, enforced by `.gitattributes`** (added 2026-07-07) — don't
+  add `core.autocrlf` overrides or per-file line-ending fixes; the repo-level fix
+  already covers it.
+- Five execution-ready plans live at the repo root as `PLAN-1..5-*.md` (written
+  2026-07-07, ranked by leverage). Check these before proposing new work in the areas
+  they cover (API rate limiting, cache TTL, v2 API, data completeness) — they contain
+  edge cases already found by exploration; don't rediscover them from scratch.
 
 ## gstack
 
@@ -119,6 +114,14 @@ Key routing rules:
 - QA/testing site behavior → invoke /qa or /qa-only
 - Code review/diff check → invoke /review
 - Visual polish → invoke /design-review
-- Ship/deploy/PR → invoke /ship or /land-and-deploy
+- Ship/deploy/PR → invoke /shipcheck first (verify), then /ship or /land-and-deploy if a PR flow is also wanted
 - Save progress → invoke /context-save
 - Resume context → invoke /context-restore
+
+## Session hygiene
+
+This project has produced multi-week single-thread sessions that hit the context limit
+mid-task ("this session is being continued from a previous conversation..." appeared 5
+times in the last 30 days). When a task naturally completes a phase (a feature ships, a
+plan finishes, a review lands), suggest `/context-save` rather than continuing to pile
+unrelated work into the same thread.

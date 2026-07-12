@@ -1,0 +1,18 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "aerobmsce",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", "../aerobmsce", "run", "start"],
+      "port": 3000,
+      "autoPort": true
+    },
+    {
+      "name": "stocks",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev", "--", "-p", "3007"],
+      "port": 3007
+    }
+  ]
+}
