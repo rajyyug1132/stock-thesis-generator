@@ -9,6 +9,8 @@ import { StockPageClient } from './stock-page-client';
 import { AnnotatedPriceChart } from '@/components/annotated-price-chart';
 import type { PricePoint } from '@/components/price-chart';
 import { NewsList, type NewsItem } from '@/components/news-list';
+import { EvidenceSection } from '@/components/evidence-section';
+import type { Evidence } from '@/lib/data/filings';
 import type { Thesis, ValidationResult } from '@/lib/ai/schemas';
 import { getBaseUrl } from '@/lib/utils';
 import { Suspense } from 'react';
@@ -32,6 +34,7 @@ interface ThesisResponse {
     keyMetrics: KeyMetrics;
     prices?: PricePoint[];
     news?: NewsItem[];
+    evidence?: Evidence | null;
   };
   meta: { cached: boolean };
   error?: string;
@@ -130,7 +133,7 @@ async function ThesisSection({ symbol }: { symbol: string }) {
     );
   }
 
-  const { thesis, validation, context: { keyMetrics, prices = [], news = [] }, meta } = data;
+  const { thesis, validation, context: { keyMetrics, prices = [], news = [], evidence }, meta } = data;
   const score = validation.overallScore;
 
   return (
@@ -283,6 +286,9 @@ async function ThesisSection({ symbol }: { symbol: string }) {
           </div>
         </section>
       )}
+
+      {/* Filing evidence (StockRAG) */}
+      {evidence && <EvidenceSection evidence={evidence} />}
 
       {/* News */}
       {news.length > 0 && (
